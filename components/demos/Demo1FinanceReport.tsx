@@ -22,6 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import { queryLingFinance } from "@/lib/openrouter";
+import { MarkdownViewer } from "@/components/MarkdownViewer";
 
 interface ChartDataPoint {
   period: string;
@@ -81,9 +82,9 @@ export const Demo1FinanceReport: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6 overflow-y-auto">
+    <div className="h-full flex flex-col p-6 space-y-4 overflow-hidden">
       {/* Header Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800 shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
@@ -93,7 +94,7 @@ export const Demo1FinanceReport: React.FC = () => {
               Finance Report & Visualization
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-0.5">
             Evaluate NVIDIA revenue bifurcation: Hyperscale Cloud Titan CapEx vs ACIE (Accelerated Compute & Infrastructure Enterprise)
           </p>
         </div>
@@ -123,11 +124,11 @@ export const Demo1FinanceReport: React.FC = () => {
       </div>
 
       {/* Two-Pane View */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[580px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden">
         {/* Left Pane: Prompt Input Area & Response Output Container */}
-        <div className="lg:col-span-6 flex flex-col space-y-4">
+        <div className="lg:col-span-6 flex flex-col space-y-3 min-h-0 overflow-hidden">
           {/* Prompt Input Area */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col space-y-3">
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col space-y-2 shrink-0">
             <div className="flex items-center justify-between">
               <label htmlFor="prompt-input" className="text-xs font-semibold text-slate-300 flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5 text-emerald-400" />
@@ -142,12 +143,12 @@ export const Demo1FinanceReport: React.FC = () => {
               id="prompt-input"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Enter your financial analysis question..."
-              className="w-full text-xs font-mono bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 transition-all resize-none"
+              className="w-full text-xs font-mono bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 transition-all resize-none"
             />
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-0.5">
               <span className="text-[11px] text-slate-400">
                 Preset: NVIDIA Growth Drivers (Hyperscale vs ACIE)
               </span>
@@ -162,24 +163,31 @@ export const Demo1FinanceReport: React.FC = () => {
             </div>
           </div>
 
-          {/* Response Output Container */}
-          <div className="flex-1 min-h-[360px] p-5 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col overflow-hidden relative">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800/80">
+          {/* Response Output Container with Fixed Height & Vertical Scrollbar */}
+          <div className="flex-1 min-h-0 p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col overflow-hidden relative shadow-lg">
+            <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800/80 shrink-0">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-bold text-slate-200">
                   Model Synthesis & Reasoning Output
                 </span>
               </div>
-              {hasExecuted && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Inference Complete
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {hasExecuted && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Inference Complete
+                  </span>
+                )}
+                {response && (
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Vertical Scrollable
+                  </span>
+                )}
+              </div>
             </div>
 
             {loading ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-3 text-slate-400 py-12">
+              <div className="flex-1 flex flex-col items-center justify-center space-y-3 text-slate-400 py-6">
                 <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
                 <p className="text-xs font-medium text-slate-300">
                   Querying OpenRouter API (inclusionai/ling-3.0-flash-fin:free)...
@@ -197,22 +205,26 @@ export const Demo1FinanceReport: React.FC = () => {
                 </div>
               </div>
             ) : response ? (
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 text-xs leading-relaxed text-slate-200 font-sans">
-                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-emerald-300/90 font-mono">
-                  Analysis generated by Ling 3.0 Flash Fin via OpenRouter API
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <div className="p-2 mb-2 rounded bg-slate-950/80 border border-slate-800/80 text-[10px] text-emerald-300/90 font-mono flex items-center justify-between shrink-0">
+                  <span>Engine: inclusionai/ling-3.0-flash-fin:free</span>
+                  <span className="text-slate-400">Structured Financial Report</span>
                 </div>
-                <div className="whitespace-pre-wrap leading-relaxed text-slate-300 text-xs">
-                  {response}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <MarkdownViewer
+                    content={response}
+                    className="h-full"
+                  />
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-center p-6">
-                <div className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center mb-3">
-                  <BarChart3 className="w-6 h-6 text-slate-400" />
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-center p-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center mb-2">
+                  <BarChart3 className="w-5 h-5 text-slate-400" />
                 </div>
-                <h4 className="text-sm font-semibold text-slate-300">No Analysis Executed Yet</h4>
-                <p className="text-xs text-slate-400 max-w-xs mt-1">
-                  Click <span className="text-emerald-400 font-medium">"Analyze NVIDIA growth drivers"</span> above to trigger the model reasoning and data generation.
+                <h4 className="text-xs font-semibold text-slate-300">No Analysis Executed Yet</h4>
+                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                  Click <span className="text-emerald-400 font-medium">"Analyze NVIDIA growth drivers"</span> above to trigger model reasoning and data generation.
                 </p>
               </div>
             )}
@@ -220,8 +232,8 @@ export const Demo1FinanceReport: React.FC = () => {
         </div>
 
         {/* Right Pane: Responsive Charting Area using Recharts */}
-        <div className="lg:col-span-6 flex flex-col space-y-4">
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex-1 flex flex-col">
+        <div className="lg:col-span-6 flex flex-col space-y-4 min-h-0 overflow-hidden">
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex-1 min-h-0 flex flex-col overflow-hidden">
             {/* Chart Title & Stat Badges */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
               <div>

@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { queryLingFinance } from "@/lib/openrouter";
+import { MarkdownViewer } from "@/components/MarkdownViewer";
 import { cn } from "@/lib/utils";
 
 interface ToolCallLog {
@@ -389,10 +390,17 @@ export const Demo3FinancialResearch: React.FC = () => {
             </div>
 
             {/* AI Reasoning Text Container */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
-              <div className="flex items-center gap-1.5 text-slate-200 font-semibold text-xs">
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span>Ling 3.0 Flash Fin Formal Reasoning</span>
+            <div className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 text-xs space-y-2 flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 text-slate-200 font-semibold text-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Ling 3.0 Flash Fin Formal Reasoning</span>
+                </div>
+                {modelReasoning && (
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Vertical Scrollable
+                  </span>
+                )}
               </div>
               {isRunning ? (
                 <div className="py-6 flex flex-col items-center justify-center space-y-2 text-slate-400">
@@ -400,11 +408,14 @@ export const Demo3FinancialResearch: React.FC = () => {
                   <span className="text-[11px]">Synthesizing SEC filings and footnotes...</span>
                 </div>
               ) : modelReasoning ? (
-                <div className="text-[11px] text-slate-300 leading-relaxed max-h-52 overflow-y-auto pr-1 whitespace-pre-wrap font-sans">
-                  {modelReasoning}
+                <div className="max-h-56 overflow-hidden">
+                  <MarkdownViewer
+                    content={modelReasoning}
+                    maxHeight="max-h-52"
+                  />
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">
+                <p className="text-[11px] text-slate-500 italic py-2">
                   Press &quot;Start Research&quot; above to trigger autonomous model reasoning and verification.
                 </p>
               )}

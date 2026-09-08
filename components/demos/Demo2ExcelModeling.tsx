@@ -13,6 +13,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { queryLingFinance } from "@/lib/openrouter";
+import { MarkdownViewer } from "@/components/MarkdownViewer";
 import { cn } from "@/lib/utils";
 
 type SheetTab = "Summary" | "Q2 Actuals" | "Projections";
@@ -501,13 +502,21 @@ export const Demo2ExcelModeling: React.FC<Demo2ExcelModelingProps> = ({ onShowTo
 
       {/* Model Output Inspector Drawer (if triggered) */}
       {lastModelResponse && (
-        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 flex flex-col space-y-1.5 max-h-36 overflow-y-auto">
-          <div className="flex items-center gap-2 text-cyan-400 font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Ling 3.0 Flash Fin Reasoning Summary</span>
+        <div className="p-3.5 rounded-xl bg-slate-900/95 border border-slate-800 text-xs text-slate-300 flex flex-col space-y-2 max-h-44 shrink-0 shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 shrink-0">
+            <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Ling 3.0 Flash Fin Reasoning Summary</span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Vertical Scrollable Breakdown
+            </span>
           </div>
-          <div className="text-[11px] text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">
-            {lastModelResponse}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <MarkdownViewer
+              content={lastModelResponse}
+              maxHeight="max-h-32"
+            />
           </div>
         </div>
       )}
