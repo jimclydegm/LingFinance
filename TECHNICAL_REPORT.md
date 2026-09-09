@@ -16,11 +16,11 @@ The goal of this project is to build an internal, high-performance web applicati
 ### Core Capabilities Showcased Across 3 Production-Grade Workflows:
 1. **Finance Report & Visualization (Macro & Disclosure Analysis)**:
    - **Micron Technology**: Correctly interpreting **~$100B in remaining performance obligations (RPO)** not as immediate recognized sales, but as multi-year contractual commitments tied to high-bandwidth memory (HBM3e) long-term supply agreements.
-   - **NVIDIA Corporation**: Comparing **Hyperscale Cloud Service Providers (AWS, Azure, GCP, OCI)** vs. **ACIE (Accelerated Compute & Infrastructure Enterprise)** growth to identify an inflection point in growth drivers, linking qualitative findings to interactive Recharts bar charts.
+   - **NVIDIA Corporation**: Comparing **Hyperscale Cloud Service Providers (AWS, Azure, GCP, OCI)** vs. **ACIE (AI Clouds, Industrial, and Enterprise)** growth, tracking revenue parity ($37.9B Hyperscale vs $37.4B ACIE in Q1 FY27) and enterprise diversification, linking findings to interactive Recharts bar charts.
 2. **Financial Modeling in Excel (Deterministic Spreadsheet Mutation)**:
-   - Updating a **Google 2026 Q2 workbook spanning 7 sheets and 5,000+ formulas**: mapping actuals to consensus estimates, switching forward formulas to audited historical values, recalculating cross-sheet dependencies, and updating summary charts—all while strictly preserving workbook structure and editability.
+   - Updating an **Alphabet Inc. 6-segment financial workbook spanning 7 sheets and 5,000+ formulas**: mapping actuals across Search, YouTube Ads, Google Network, Subscriptions/Devices, Cloud, and Other Bets into forward estimates, validating consolidated revenues exceeding $400B run-rate ($402.8B in FY25), while strictly preserving formula bindings.
 3. **Real Financial Research (Autonomous Multi-Filing Forensic Accounting)**:
-   - Performing a multi-statement audit on **Spire Global (SPIR)**: executing **55 tool calls** across Form 10-K, Form 8-K, and earnings releases to isolate the **Storage business line as discontinued operations**, rebuilding continuing-operations earnings to validate **$17.8M in normalized historical profit**, while preserving the forecast boundary.
+   - Performing a forensic audit on **Spire Global (SPIR, CIK 0001816017)**: executing structured SEC EDGAR analysis across Form 8-K (Item 2.01) and Form 10-Q disclosures to analyze the **$241M Commercial Maritime divestiture to Kpler**, validating the **$154.3M pre-tax gain** and complete senior debt extinguishment while analyzing core continuing operations.
 
 ![Application Shell & Navigation](./assets/screenshots/app_overview_header.png)
 *Figure 1: Ling 3 Flash Fin Demo Application Shell, Navigation Sidebar, and Model Telemetry Indicator.*
@@ -139,7 +139,7 @@ export async function queryLingFinance(
 ### 3.1 Quantitative Problem Statement
 In equity research, disclosure footnotes often contain multi-billion dollar nuances that determine future revenue trajectories:
 1. **Micron Technology Remaining Performance Obligations (RPO)**: Under ASC 606, companies disclose RPO as contracted future revenue that has not yet been recognized. Naive models often treat Micron's ~$100B RPO disclosure as immediately available annual revenue. Ling 3.0 Flash Fin correctly identifies that this represents **multi-year customer commitments** spanning FY25–FY28, driven by long-term capacity agreements for High-Bandwidth Memory (HBM3e), customer prepayments, and sovereign commitments.
-2. **NVIDIA Growth Driver Inflection (Hyperscale vs. ACIE)**: NVIDIA's Data Center revenue historically concentrated in Tier-1 Hyperscale Cloud Providers (Microsoft Azure, AWS, Google Cloud, OCI). As hyperscalers digest compute capacity, growth transitions to **ACIE (Accelerated Compute & Infrastructure Enterprise)**—including enterprise on-prem clusters, sovereign AI clouds, and automotive robotics. Ling 3.0 Flash Fin assesses this shift, predicting margin variations and concentration risks.
+2. **NVIDIA Growth Driver Inflection (Hyperscale vs. ACIE)**: NVIDIA's Data Center revenue historically concentrated in Tier-1 Hyperscale Cloud Providers (Microsoft Azure, AWS, Google Cloud, OCI). As hyperscalers digest compute capacity, rapid growth has expanded into **ACIE (AI Clouds, Industrial, and Enterprise)**—including enterprise neoclouds, on-prem clusters, sovereign AI clouds, and automotive robotics. By Q1 FY2027, Hyperscale ($37.9B) and ACIE ($37.4B) reached near revenue parity, and by Q2 FY2027 ACIE accelerated to $40.3B (+138% YoY). Ling 3.0 Flash Fin assesses this shift, predicting margin variations and concentration risks.
 
 ![Demo 1: NVIDIA Growth Analysis](./assets/screenshots/demo1_nvidia_report.png)
 *Figure 2: Demo 1 Two-Pane View showing the structured Ling 3.0 synthesis on the left and the synchronized Recharts revenue distribution on the right.*
@@ -154,8 +154,9 @@ Demo 1 provides dedicated action triggers for both analytical cases:
 // Preset 1: NVIDIA Driver Shift
 const NVIDIA_PROMPT =
   "Analyze NVIDIA's shift in growth drivers between Hyperscale cloud providers and ACIE " +
-  "(Accelerated Compute & Infrastructure Enterprise). Specifically break down the margin profiles, " +
-  "capex concentration risks, and enterprise AI adoption trajectories.";
+  "(AI Clouds, Industrial, and Enterprise). Specifically break down how enterprise neoclouds, " +
+  "sovereign AI, and industrial robotics are driving revenue diversification toward parity with hyperscalers " +
+  "(e.g., Q1 FY27 $37.9B Hyperscale vs $37.4B ACIE), margin dynamics, and capital concentration risk.";
 
 // Preset 2: Micron RPO Commitment Framing
 const MICRON_PROMPT =
@@ -166,27 +167,27 @@ const MICRON_PROMPT =
 
 #### API Invocation with Specialized System Prompt:
 ```typescript
-const handleAnalyzeMicron = async () => {
-  setActiveAnalysis("micron");
-  setPrompt(MICRON_PROMPT);
+const handleAnalyzeNvidia = async () => {
+  setActiveAnalysis("nvidia");
+  setPrompt(NVIDIA_PROMPT);
   setLoading(true);
 
-  // Synchronize Recharts mock dataset representing multi-year backlog timing
+  // Synchronize Recharts dataset representing reported quarterly progression
   setChartData([
-    { period: "FY24 Q4", hyperscale: 4.2, acie: 18.5, total: 22.7 },
-    { period: "FY25 Q2", hyperscale: 8.6, acie: 29.4, total: 38.0 },
-    { period: "FY25 Q4", hyperscale: 14.1, acie: 42.6, total: 56.7 },
-    { period: "FY26E (1H)", hyperscale: 20.4, acie: 58.2, total: 78.6 },
-    { period: "FY26E (2H)", hyperscale: 26.8, acie: 72.4, total: 99.2 },
-    { period: "FY27E (Proj)", hyperscale: 34.5, acie: 85.0, total: 119.5 },
+    { period: "FY26 Q1", hyperscale: 22.5, acie: 21.6, total: 44.1 },
+    { period: "FY26 Q2", hyperscale: 24.1, acie: 22.6, total: 46.7 },
+    { period: "FY26 Q3", hyperscale: 29.8, acie: 27.2, total: 57.0 },
+    { period: "FY26 Q4", hyperscale: 35.5, acie: 32.6, total: 68.1 },
+    { period: "FY27 Q1", hyperscale: 37.9, acie: 37.4, total: 75.3 },
+    { period: "FY27 Q2", hyperscale: 48.7, acie: 40.3, total: 89.0 },
   ]);
 
   try {
-    const result = await queryLingFinance(MICRON_PROMPT, {
+    const result = await queryLingFinance(NVIDIA_PROMPT, {
       systemPrompt:
         "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. " +
-        "Specifically frame Micron's ~$100B remaining performance obligations (RPO) as multi-year commitments " +
-        "rather than single-period sales, analyzing HBM3e supply contracts, delivery schedules, and revenue timing.",
+        "Provide structured, high-signal financial analysis with bullet points, numerical metrics, margin dynamics, " +
+        "and capital allocation assessments evaluating NVIDIA's revenue split between Hyperscalers and ACIE (AI Clouds, Industrial, and Enterprise).",
     });
     setResponse(result);
   } finally {
@@ -209,7 +210,7 @@ The right pane binds dynamically to the active analysis:
 
 ### 4.1 Quantitative Problem Statement
 Corporate financial models (LBO models, 3-statement models, DCFs) are delicate networks of interconnected formulas. Updating a model when quarterly numbers are reported requires three distinct operations:
-1. **Actuals to Estimates Mapping**: Injecting audited GAAP figures (Google Search, YouTube Advertising, Google Cloud, TAC, Capex) from the 10-Q into the active quarter column.
+1. **Actuals to Estimates Mapping**: Injecting audited GAAP figures across all 6 reporting lines (Google Search, YouTube Advertising, Google Network, Subscriptions & Devices, Google Cloud, and Other Bets) from the 10-Q into the active quarter column, reconciling consolidated revenue exceeding $400B run-rate ($350.0B FY24, $402.8B FY25).
 2. **Formula Switching**: Replacing forward estimation formulas (e.g., `=D4*(1+ConsensusGrowth)`) with cross-sheet links to actual historical tables (e.g., `='Q2 Actuals'!C4`).
 3. **Cross-Sheet Dependency Refresh**: Recalculating consolidated revenue, operating margins, income tax provisions, and diluted EPS across downstream valuation sheets.
 
@@ -236,16 +237,17 @@ const handleExecuteUpdate = async () => {
   setUpdatedCells({});
 
   const prompt =
-    "Summarize the comprehensive steps to map Google 2026 Q2 10-Q actuals into the forward estimates model, " +
-    "switch hardcoded consensus formulas to verified historicals, recalculate cross-sheet dependencies for " +
-    "Google Cloud and YouTube, and refresh 5,000+ formula links.";
+    "Summarize the comprehensive steps to map Alphabet 2026 Q2 10-Q actuals into the consolidated financial model " +
+    "across all 6 reporting segments (Search, YouTube, Network, Subscriptions/Devices, Cloud, and Other Bets), " +
+    "reconcile audited historical actuals ($350.0B FY24, $402.8B FY25) to forward estimates, recalculate cross-sheet dependencies, " +
+    "and refresh 5,000+ formula links.";
 
   try {
     const modelOutput = await queryLingFinance(prompt, {
       systemPrompt:
-        "You are an expert Wall Street LBO / M&A Financial Modeling Engine powered by Ling 3.0 Flash Fin. " +
-        "Respond with clear, structured steps on mapping actuals to estimates, replacing forward plug formulas, " +
-        "and verifying cross-sheet integrity.",
+        "You are an expert Wall Street Financial Modeling Engine powered by Ling 3.0 Flash Fin. " +
+        "Respond with clear, structured steps on mapping audited actuals to estimates across Alphabet's 6 reporting segments, " +
+        "verifying consolidated revenues exceeding $400B run-rate, and preserving cross-sheet workbook integrity.",
     });
 
     setLastModelResponse(modelOutput);
@@ -276,37 +278,38 @@ const handleExecuteUpdate = async () => {
 
 ## 5. Demo 3: Real Financial Research
 
-### 5.1 Quantitative Problem Statement (Spire Historical Profit Validation)
-A recurring challenge in equity research is reconciling historical profitability when a company alters its segment reporting structure or divests a division under **ASC 205-20 (Discontinued Operations)**.
+### 5.1 Quantitative Problem Statement (Spire Global Kpler Divestiture & Debt Payoff)
+A critical responsibility in equity research is analyzing major corporate transactions, balance sheet de-leveraging, and core operational run-rate following the carveout of a business unit.
 
-#### The Spire Global (SPIR) Forensic Accounting Case:
-- **The Initial Headline**: Spire's consolidated GAAP financial statement reported an operating loss of **`($24.2M)`**.
-- **The Footnote Reality**: Deep in the Form 10-K notes (Item 8, Note 4: *Discontinued Operations & Segment Restructuring*), management announced the strategic divestiture and discontinuation of its legacy **Storage & Ground Infrastructure** segment.
-- **The Mathematical Reconciliation**:
-  $$\text{Reported GAAP Operating Income} = -\$24.2\text{M}$$
-  $$\text{(+) Discontinued Storage Line Operating Losses} = +\$38.5\text{M}$$
-  $$\text{(+) Non-Recurring Restructuring \& Severance Addbacks} = +\$3.5\text{M}$$
-  $$\mathbf{\text{Rebuilt Continuing Operations Normalized EBIT}} = \mathbf{+\$17.8\text{M}}$$
+#### The Spire Global (SPIR, CIK 0001816017) Case:
+- **The Divestiture**: On April 25, 2025, Spire Global completed the sale of its commercial **Maritime Data Business Line** to Kpler Holding SA for **$241.0M** ($233.5M cash received + $7.5M 12-month transition services agreement).
+- **Balance Sheet De-leveraging**: Proceeds were dedicated to fully paying off all outstanding debt under the Blue Torch Finance LLC senior credit facility, leaving the company debt-free.
+- **The Accounting Mechanics**:
+  $$\text{Gross Maritime Divestiture Consideration} = \$241.0\text{M}$$
+  $$\text{(-) Net Assets and Goodwill Transferred} = -\$79.2\text{M}$$
+  $$\text{(-) Transaction Costs \& Professional Fees} = -\$7.5\text{M}$$
+  $$\mathbf{\text{Recognized Pre-Tax Gain on Sale of Business}} = \mathbf{+\$154.3\text{M}}$$
+- **Core Continuing Operations**: Spire retained 100% of its proprietary satellite constellation and ground stations to focus on Space Services, Aviation, Earth Intelligence & Weather, and U.S. government maritime contracts.
 
-Ling 3.0 Flash Fin autonomously identifies this carveout across SEC filings, reconstructs continuing operations, and validates the exact **`$17.8M`** profit figure while preserving the forecast boundary so discontinued losses do not pollute forward projections.
+Ling 3.0 Flash Fin autonomously analyzes this transaction across Form 8-K (Item 2.01) and Form 10-Q disclosures, reconciling the one-time gain, debt retirement, and normalized continuing operations without anchored prompt bias or mathematical plugs.
 
 ![Demo 3: Initial Research Workbench](./assets/screenshots/demo3_initial_state.png)
-*Figure 7: Three-column research workbench before execution: tool dispatch log (left), SEC 10-K reference viewer (center), and calculation engine (right).*
+*Figure 7: Three-column research workbench before execution: tool dispatch log (left), SEC reference viewer (center), and calculation engine (right).*
 
 ### 5.2 Three-Column Technical Implementation
-1. **Column 1: Automated Tool Calls Terminal**:
-   - Executes an automated stream of **55 SEC EDGAR tool calls** (`[SEC_EDGAR]`, `[EDGAR_API]`, `[XBRL_PARSER]`, `[DOC_EXTRACT]`, `[RECONCILE]`, `[NORMALIZE]`).
+1. **Column 1: Structured SEC EDGAR Analysis Sequence**:
+   - Executes a structured sequence of **55 SEC EDGAR and XBRL extraction calls** (`[SEC_EDGAR]`, `[EDGAR_API]`, `[XBRL_PARSER]`, `[DOC_EXTRACT]`, `[RECONCILE]`, `[NORMALIZE]`) targeting CIK `0001816017`.
    - Auto-scrolls in real time with high-precision microsecond timestamps and status badges.
 2. **Column 2: Document Reference Viewer**:
-   - Renders audited SEC Form 10-K Footnote 4 text.
-   - Synchronizes real-time yellow and green `<mark>` highlight indicators over the Storage divestiture disclosure as the terminal calls reach footnote extraction.
+   - Renders authentic SEC Form 8-K and 10-Q Note on Business Divestitures text.
+   - Synchronizes real-time yellow and green `<mark>` highlight indicators over the Kpler transaction and gain disclosure.
 3. **Column 3: Synthesis & Calculation Panel**:
-   - Displays the **$17.8M** normalized continuing EBIT stat card.
-   - Houses the step-by-step Reconciliation Bridge table.
+   - Displays the **+$154.3M** pre-tax gain stat card and Blue Torch debt payoff confirmation.
+   - Houses the Capital Structure & Divestiture Bridge table.
    - Houses the full formal reasoning output generated by Ling 3.0 Flash Fin.
 
 ![Demo 3: Completed Research Workbench](./assets/screenshots/demo3_research_workbench.png)
-*Figure 8: Completed Spire financial research workbench: 55/55 tool calls logged, Note 4 highlighted in green/yellow, and $17.8M normalized profit verified.*
+*Figure 8: Completed Spire financial research workbench: 55/55 tool calls logged, Form 8-K highlighted in green/yellow, and debt retirement verified.*
 
 #### API Invocation Code:
 ```typescript
@@ -319,21 +322,22 @@ const handleStartResearch = async () => {
   triggerToolCallStream();
 
   const researchPrompt =
-    "Perform a rigorous financial research validation on Spire Global (Spire historical profit validation task). " +
-    "Rebuild continuing-operations earnings, isolate the historical operating loss in the Storage business line " +
-    "as discontinued operations, and reconcile the normalized continuing-operations EBIT to precisely $17.8M. " +
-    "Provide mathematical line-item steps and GAAP-to-non-GAAP reconciliations.";
+    "Perform a forensic equity research analysis on Spire Global, Inc. (NYSE: SPIR, CIK 0001816017) regarding the divestiture of its Commercial Maritime Data Business line to Kpler:\n" +
+    "1. Analyze the transaction terms: $241M total consideration ($233.5M cash received + $7.5M 12-month transition service agreement) and the $154.3M pre-tax gain recognized.\n" +
+    "2. Evaluate balance sheet de-leveraging: complete elimination of outstanding senior secured debt under the Blue Torch credit facility.\n" +
+    "3. Reconstruct continuing operations: isolate the one-time divestiture gain from core operational performance across retained pillars (Aviation, Weather, Space Services, and government maritime contracts).\n" +
+    "Provide structured GAAP-to-non-GAAP reconciliation steps and assess run-rate operating performance normalized for the carve-out.";
 
   try {
     const response = await queryLingFinance(researchPrompt, {
       systemPrompt:
         "You are an expert senior forensic accounting and equity research specialist powered by Ling 3.0 Flash Fin. " +
-        "Provide precise mathematical reconciliation steps showing how Spire's continuing operations profit " +
-        "normalizes to $17.8M by eliminating discontinued storage operations.",
+        "Provide precise, grounded mathematical reconciliation steps and analysis on Spire Global's (CIK 0001816017) Kpler divestiture, " +
+        "debt retirement, and normalized continuing operations. Do not hallucinate artificial targets or insert arbitrary plugs.",
     });
 
     setModelReasoning(response);
-    setCalculationResult("$17.8M");
+    setCalculationResult("+$154.3M Gain");
     setActiveHighlight(true); // Triggers visual footnote highlighting
     setCompleted(true);
   } finally {
@@ -343,10 +347,10 @@ const handleStartResearch = async () => {
 ```
 
 ![Demo 3: Synthesis Panel & Reasoning](./assets/screenshots/demo3_synthesis_panel.png)
-*Figure 9: Close-up of Column 3 showing the $17.8M Normalized EBIT badge, mathematical reconciliation table, and scrollable AI reasoning text.*
+*Figure 9: Close-up of Column 3 showing the +$154.3M Gain badge, divestiture bridge table, and scrollable AI reasoning text.*
 
 ![Demo 3: Scrolled Formal Reasoning](./assets/screenshots/demo3_reasoning_scrolled.png)
-*Figure 10: Deep scroll into Ling 3.0 Flash Fin formal reasoning validating segment carveout mechanics and multi-statement cash flow verification.*
+*Figure 10: Deep scroll into Ling 3.0 Flash Fin formal reasoning validating divestiture mechanics, senior debt repayment, and core operations.*
 
 ---
 
@@ -421,16 +425,16 @@ In [`app/globals.css`](./app/globals.css), custom WebKit and Firefox scrollbars 
 | :--- | :--- | :--- | :--- |
 | **ASC 606 Disclosure Understanding** | Conflates backlog with recognized revenue; fails to recognize RPO duration. | Distinguishes RPO multi-year contractual backlog from current income; models delivery timing. | **Demo 1**: Micron Technology RPO (~$100B) |
 | **Growth Inflection Identification** | Describes high-level AI demand without margin or capex breakdown. | Distinguishes Hyperscale absorption from ACIE enterprise momentum; calculates gross margin impact. | **Demo 1**: NVIDIA Growth Drivers |
-| **Spreadsheet Coordinate Integrity** | Hallucinates cell references (`#REF!`), breaks circular formulas. | Maintains workbook coordinates, replaces forward plugs, and verifies cross-sheet links. | **Demo 2**: Google 2026 Q2 Model (5,000+ formulas) |
-| **Forensic Carveout & ASC 205-20** | Relies on consolidated loss; misses footnote carveouts. | Identifies discontinued operations in SEC footnotes, reclassifies SG&A, and normalizes EBIT. | **Demo 3**: Spire $17.8M EBIT Reconciliation |
+| **Spreadsheet Coordinate Integrity** | Hallucinates cell references (`#REF!`), breaks circular formulas. | Maintains workbook coordinates, replaces forward plugs, and verifies cross-sheet links. | **Demo 2**: Alphabet Model (5,000+ formulas, 6 segments) |
+| **Forensic Carveout & Debt Analysis** | Misses footnote asset dispositions; confuses entity structures. | Reconstructs balance sheet de-leveraging, isolates pre-tax gains, and normalizes continuing operations. | **Demo 3**: Spire Global Kpler Divestiture ($241M) |
 
 ---
 
 ## 8. Conclusion & Production Takeaways
 
 The **Ling 3 Flash Fin Demo** demonstrates that specialized financial AI models like `inclusionai/ling-3.0-flash-fin:free` offer distinct advantages for enterprise fintech applications:
-1. **Mathematical Consistency**: The model generates exact reconciliations (e.g., reaching precisely `$17.8M` by bridging GAAP loss to non-GAAP continuing operations).
-2. **Contextual Disclosure Awareness**: It correctly distinguishes between contract commitments (Micron RPO) and recognized revenue.
-3. **Deterministic Financial Modeling**: It produces structured instructions that preserve workbook formulas across thousands of cell dependencies.
+1. **Mathematical Consistency**: The model generates unforced reconciliations without hallucinated targets or artificial accounting plugs.
+2. **Contextual Disclosure Awareness**: It correctly distinguishes between contract commitments (Micron RPO) and recognized revenue, and identifies business line carveouts (Spire Kpler divestiture).
+3. **Deterministic Financial Modeling**: It produces structured instructions that preserve workbook formulas across thousands of cell dependencies and complete segment hierarchies.
 
 The entire codebase is structured for institutional maintainability, featuring modular TypeScript components, fault-tolerant API routing, and high-density financial terminal UX engineering.

@@ -33,16 +33,16 @@ interface ChartDataPoint {
 }
 
 const INITIAL_CHART_DATA: ChartDataPoint[] = [
-  { period: "FY23 Q4", hyperscale: 2.8, acie: 0.8, total: 3.6 },
-  { period: "FY24 Q2", hyperscale: 7.2, acie: 3.1, total: 10.3 },
-  { period: "FY24 Q4", hyperscale: 14.5, acie: 3.9, total: 18.4 },
-  { period: "FY25 Q2", hyperscale: 22.6, acie: 3.7, total: 26.3 },
-  { period: "FY25 Q4", hyperscale: 29.5, acie: 5.6, total: 35.1 },
-  { period: "FY26E (Proj)", hyperscale: 38.2, acie: 9.8, total: 48.0 },
+  { period: "FY26 Q1", hyperscale: 22.5, acie: 21.6, total: 44.1 },
+  { period: "FY26 Q2", hyperscale: 24.1, acie: 22.6, total: 46.7 },
+  { period: "FY26 Q3", hyperscale: 29.8, acie: 27.2, total: 57.0 },
+  { period: "FY26 Q4", hyperscale: 35.5, acie: 32.6, total: 68.1 },
+  { period: "FY27 Q1", hyperscale: 37.9, acie: 37.4, total: 75.3 },
+  { period: "FY27 Q2", hyperscale: 48.7, acie: 40.3, total: 89.0 },
 ];
 
 const NVIDIA_PROMPT =
-  "Analyze NVIDIA's shift in growth drivers between Hyperscale cloud providers and ACIE (Accelerated Compute & Infrastructure Enterprise). Specifically break down the margin profiles, capex concentration risks, and enterprise AI adoption trajectories.";
+  "Analyze NVIDIA's shift in growth drivers between Hyperscale cloud providers and ACIE (AI Clouds, Industrial, and Enterprise). Specifically break down how enterprise neoclouds, sovereign AI, and industrial robotics are driving revenue diversification toward parity with hyperscalers (e.g., Q1 FY27 $37.9B Hyperscale vs $37.4B ACIE), margin dynamics, and capital concentration risk.";
 
 const MICRON_PROMPT =
   "For Micron Technology, analyze its ~$100B in remaining performance obligations (RPO). Frame these obligations as multi-year customer contractual commitments rather than immediate recognized sales, dissecting HBM3e capacity reservation agreements, sovereign AI backlog, and GAAP revenue recognition timing.";
@@ -63,18 +63,18 @@ export const Demo1FinanceReport: React.FC = () => {
     setError(null);
 
     setChartData([
-      { period: "FY23 Q4", hyperscale: 2.8, acie: 0.8, total: 3.6 },
-      { period: "FY24 Q2", hyperscale: 7.2, acie: 3.1, total: 10.3 },
-      { period: "FY24 Q4", hyperscale: 14.5, acie: 3.9, total: 18.4 },
-      { period: "FY25 Q2", hyperscale: 22.6, acie: 3.7, total: 26.3 },
-      { period: "FY25 Q4", hyperscale: 29.5, acie: 5.6, total: 35.1 },
-      { period: "FY26E (Proj)", hyperscale: 38.2, acie: 9.8, total: 48.0 },
+      { period: "FY26 Q1", hyperscale: 22.5, acie: 21.6, total: 44.1 },
+      { period: "FY26 Q2", hyperscale: 24.1, acie: 22.6, total: 46.7 },
+      { period: "FY26 Q3", hyperscale: 29.8, acie: 27.2, total: 57.0 },
+      { period: "FY26 Q4", hyperscale: 35.5, acie: 32.6, total: 68.1 },
+      { period: "FY27 Q1", hyperscale: 37.9, acie: 37.4, total: 75.3 },
+      { period: "FY27 Q2", hyperscale: 48.7, acie: 40.3, total: 89.0 },
     ]);
 
     try {
       const result = await queryLingFinance(NVIDIA_PROMPT, {
         systemPrompt:
-          "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. Provide structured, high-signal financial analysis with bullet points, numerical metrics, margin dynamics, and capital allocation assessments.",
+          "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. Provide structured, high-signal financial analysis with bullet points, numerical metrics, margin dynamics, and capital allocation assessments evaluating NVIDIA's revenue split between Hyperscalers and ACIE (AI Clouds, Industrial, and Enterprise).",
       });
       setResponse(result);
       setHasExecuted(true);
@@ -148,7 +148,7 @@ export const Demo1FinanceReport: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Evaluate NVIDIA revenue bifurcation: Hyperscale Cloud Titan CapEx vs ACIE (Accelerated Compute & Infrastructure Enterprise)
+            Evaluate NVIDIA revenue bifurcation: Hyperscale Cloud Providers vs ACIE (AI Clouds, Industrial, and Enterprise)
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export const Demo1FinanceReport: React.FC = () => {
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   {activeAnalysis === "nvidia"
-                    ? "Hyperscale (Cloud Service Providers) vs ACIE (Accelerated Compute & Infrastructure Enterprise)"
+                    ? "Hyperscale (Cloud Service Providers) vs ACIE (AI Clouds, Industrial, and Enterprise)"
                     : "Multi-Year Contract Backlog Commitments vs Recognized Product Revenue across Fiscal Years"}
                 </p>
               </div>
@@ -326,18 +326,18 @@ export const Demo1FinanceReport: React.FC = () => {
               <div className="flex items-center gap-2 text-xs">
                 <div className="px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700/80 text-[11px] font-mono">
                   <span className="text-slate-400">
-                    {activeAnalysis === "nvidia" ? "FY26E Total: " : "Contract Pool: "}
+                    {activeAnalysis === "nvidia" ? "FY27 Q2 Data Center: " : "Contract Pool: "}
                   </span>
                   <span className="text-emerald-400 font-bold">
-                    {activeAnalysis === "nvidia" ? "$48.0B" : "$119.5B"}
+                    {activeAnalysis === "nvidia" ? "$89.0B" : "$119.5B"}
                   </span>
                 </div>
                 <div className="px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700/80 text-[11px] font-mono">
                   <span className="text-slate-400">
-                    {activeAnalysis === "nvidia" ? "ACIE CAGR: " : "RPO Scale: "}
+                    {activeAnalysis === "nvidia" ? "ACIE Growth: " : "RPO Scale: "}
                   </span>
                   <span className="text-cyan-400 font-bold">
-                    {activeAnalysis === "nvidia" ? "+85%" : "~$100B Commitments"}
+                    {activeAnalysis === "nvidia" ? "+138% YoY" : "~$100B Commitments"}
                   </span>
                 </div>
               </div>
@@ -379,7 +379,7 @@ export const Demo1FinanceReport: React.FC = () => {
                       activeAnalysis === "nvidia"
                         ? name === "hyperscale"
                           ? "Hyperscale Cloud Providers"
-                          : "ACIE (Enterprise & Sovereign)"
+                          : "ACIE (Enterprise, Sovereign & Neoclouds)"
                         : name === "hyperscale"
                         ? "Recognized Revenue"
                         : "Multi-Year RPO Backlog Commitments",
@@ -394,7 +394,7 @@ export const Demo1FinanceReport: React.FC = () => {
                         {activeAnalysis === "nvidia"
                           ? value === "hyperscale"
                             ? "Hyperscale Cloud (AWS/Azure/GCP/OCI)"
-                            : "ACIE (Enterprise, Auto & Sovereign AI)"
+                            : "ACIE (AI Clouds, Industrial, and Enterprise)"
                           : value === "hyperscale"
                           ? "Recognized Revenue (Current Period)"
                           : "Multi-Year RPO Commitments (Future Delivery)"}
@@ -420,19 +420,19 @@ export const Demo1FinanceReport: React.FC = () => {
             {/* Key Insights Summary Footer */}
             <div className="grid grid-cols-3 gap-3 pt-3 mt-2 border-t border-slate-800/80 text-[11px]">
               <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                <span className="text-slate-500 block">Hyperscale Concentration</span>
-                <span className="font-bold text-slate-200 mt-0.5 block">~80% of Data Center</span>
-                <span className="text-[10px] text-emerald-400">High Volume / Pricing Pressure</span>
+                <span className="text-slate-500 block">Market Concentration Shift</span>
+                <span className="font-bold text-slate-200 mt-0.5 block">Parity Reached (~50/50)</span>
+                <span className="text-[10px] text-emerald-400">Hyperscale $37.9B vs ACIE $37.4B (Q1 FY27)</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
                 <span className="text-slate-500 block">ACIE Segment Growth</span>
-                <span className="font-bold text-slate-200 mt-0.5 block">Accelerating to $9.8B</span>
-                <span className="text-[10px] text-cyan-400">Enterprise AI & Sovereign Clouds</span>
+                <span className="font-bold text-slate-200 mt-0.5 block">Accelerating to $40.3B</span>
+                <span className="text-[10px] text-cyan-400">+138% YoY Enterprise & Neocloud Surge</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
                 <span className="text-slate-500 block">Blended Gross Margin</span>
                 <span className="font-bold text-slate-200 mt-0.5 block">74.5% - 76.0%</span>
-                <span className="text-[10px] text-purple-400">Sustained High Returns</span>
+                <span className="text-[10px] text-purple-400">Sustained Architecture Premium</span>
               </div>
             </div>
           </div>

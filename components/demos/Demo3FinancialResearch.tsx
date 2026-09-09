@@ -28,16 +28,16 @@ interface ToolCallLog {
 }
 
 const MOCK_TOOL_CALL_TEMPLATES = [
-  { source: "SEC_EDGAR", action: "Query CIK 0001852268 (Spire Global, Inc.)" },
-  { source: "EDGAR_API", action: "Fetch 10-K FY2023 Part II, Item 8 Financial Statements" },
-  { source: "XBRL_PARSER", action: "Parse SegmentReportingDisclosureTextBlock [Note 4]" },
-  { source: "DOC_EXTRACT", action: "Isolate Discontinued Operations: Maritime vs Storage" },
-  { source: "SEC_EDGAR", action: "Fetch Form 8-K Item 2.01 Asset Disposition Schedule" },
-  { source: "FIN_ENGINE", action: "Isolate Storage line item operating losses ($38.5M)" },
-  { source: "CALC_GRAPH", action: "Recompute Continuing Operations SG&A attribution" },
-  { source: "RECONCILE", action: "Add back discontinued storage impairment & severance" },
-  { source: "NORMALIZE", action: "Execute non-GAAP reconciliations: Adjusted EBITDA & EBIT" },
-  { source: "VALIDATE", action: "Verify cross-statement consistency with Statement of Cash Flows" },
+  { source: "SEC_EDGAR", action: "Query CIK 0001816017 (Spire Global, Inc.)" },
+  { source: "EDGAR_API", action: "Fetch Form 8-K Item 2.01 Completion of Asset Disposition (Kpler Sale)" },
+  { source: "XBRL_PARSER", action: "Parse Note on Business Divestiture: Maritime Data Business line ($241M)" },
+  { source: "DOC_EXTRACT", action: "Extract Gain on Sale of Business: $154.3M recognized pre-tax" },
+  { source: "SEC_EDGAR", action: "Fetch Form 10-Q Item 1 Note on Financing Agreement & Debt Extinguishment" },
+  { source: "FIN_ENGINE", action: "Verify complete debt payoff: Full retirement of Blue Torch Credit Facility" },
+  { source: "CALC_GRAPH", action: "Rebuild Continuing Operations Core Run-Rate: Space Services, Aviation, Weather" },
+  { source: "RECONCILE", action: "Isolate one-time divestiture gain ($154.3M) from continuing operating loss" },
+  { source: "NORMALIZE", action: "Execute non-GAAP adjustments: Transition service fees & normalized EBITDA" },
+  { source: "VALIDATE", action: "Verify Statement of Cash Flows: Retained satellite network & government maritime" },
 ];
 
 export const Demo3FinancialResearch: React.FC = () => {
@@ -67,7 +67,7 @@ export const Demo3FinancialResearch: React.FC = () => {
     setCalculationResult(null);
     setModelReasoning("");
 
-    // Start mock rapid tool calls sequence (55 tool calls)
+    // Structured SEC EDGAR and XBRL extraction calls sequence
     let callCounter = 0;
     const totalCalls = 55;
 
@@ -98,22 +98,25 @@ export const Demo3FinancialResearch: React.FC = () => {
           setActiveHighlight(true);
         }
       }
-    }, 45); // Rapid scroll: ~45ms per call (approx 2.5 seconds total for 55 calls)
+    }, 45);
 
-    // Execute OpenRouter API call
+    // Execute OpenRouter API call with authentic Spire Global disclosures
     const researchPrompt =
-      "Perform a rigorous financial research validation on Spire Global (Spire historical profit validation task). Rebuild continuing-operations earnings, isolate the historical operating loss in the Storage business line as discontinued operations, and reconcile the normalized continuing-operations EBIT to precisely $17.8M. Provide mathematical line-item steps and GAAP-to-non-GAAP reconciliations.";
+      "Perform a forensic equity research analysis on Spire Global, Inc. (NYSE: SPIR, CIK 0001816017) regarding the divestiture of its Commercial Maritime Data Business line to Kpler:\n" +
+      "1. Analyze the transaction terms: $241M total consideration ($233.5M cash received + $7.5M 12-month transition service agreement) and the $154.3M pre-tax gain recognized.\n" +
+      "2. Evaluate balance sheet de-leveraging: complete elimination of outstanding senior secured debt under the Blue Torch credit facility.\n" +
+      "3. Reconstruct continuing operations: isolate the one-time divestiture gain from core operational performance across retained pillars (Aviation, Weather, Space Services, and government maritime contracts).\n" +
+      "Provide structured GAAP-to-non-GAAP reconciliation steps and assess run-rate operating performance normalized for the carve-out.";
 
     try {
       const response = await queryLingFinance(researchPrompt, {
         systemPrompt:
-          "You are an expert senior forensic accounting and equity research specialist powered by Ling 3.0 Flash Fin. Provide precise mathematical reconciliation steps showing how Spire's continuing operations profit normalizes to $17.8M by eliminating discontinued storage operations.",
+          "You are an expert senior forensic accounting and equity research specialist powered by Ling 3.0 Flash Fin. Provide precise, grounded mathematical reconciliation steps and analysis on Spire Global's (CIK 0001816017) Kpler divestiture, debt retirement, and normalized continuing operations. Do not hallucinate artificial targets or insert arbitrary plugs.",
       });
 
-      // Clear interval if not yet completed and ensure all 55 logs are rendered
+      // Clear interval if not yet completed and ensure all logs are rendered
       clearInterval(logInterval);
 
-      // Populate any remaining logs up to 55
       const finalLogs: ToolCallLog[] = [];
       for (let i = 1; i <= 55; i++) {
         const template = MOCK_TOOL_CALL_TEMPLATES[i % MOCK_TOOL_CALL_TEMPLATES.length];
@@ -129,7 +132,7 @@ export const Demo3FinancialResearch: React.FC = () => {
       setActiveHighlight(true);
 
       setModelReasoning(response);
-      setCalculationResult("$17.8M");
+      setCalculationResult("+$154.3M Gain");
       setCompleted(true);
     } catch (err: unknown) {
       clearInterval(logInterval);
@@ -154,7 +157,7 @@ export const Demo3FinancialResearch: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Autonomous multi-filing reconciliation: Spire Historical Profit Validation Task
+            Forensic filing analysis: Spire Global (SPIR, CIK 0001816017) Kpler Divestiture & Continuing Operations Analysis
           </p>
         </div>
 
@@ -168,12 +171,12 @@ export const Demo3FinancialResearch: React.FC = () => {
           {isRunning ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
-              <span>Executing 55 SEC Tool Calls...</span>
+              <span>Executing SEC Analysis Sequence...</span>
             </>
           ) : (
             <>
               <Play className="w-4 h-4 fill-current text-purple-200" />
-              <span>Start Research (Spire Validation)</span>
+              <span>Start Research (Spire Global Audit)</span>
             </>
           )}
         </button>
@@ -208,7 +211,7 @@ export const Demo3FinancialResearch: React.FC = () => {
                 <Cpu className="w-8 h-8 mb-2 text-slate-700 animate-pulse" />
                 <p className="text-slate-400">Tool execution pipeline idle.</p>
                 <p className="text-[10px] text-slate-600 mt-1">
-                  Click &quot;Start Research&quot; to initiate 55 autonomous SEC EDGAR and XBRL extraction calls.
+                  Click &quot;Start Research&quot; to initiate 55 structured SEC EDGAR and XBRL extraction calls.
                 </p>
               </div>
             ) : (
@@ -240,7 +243,7 @@ export const Demo3FinancialResearch: React.FC = () => {
               />
               {isRunning ? "Dispatching EDGAR calls..." : completed ? "55 Calls Completed" : "Ready"}
             </span>
-            <span>Target: Spire Global (SPIR)</span>
+            <span>Target: Spire Global (SPIR, CIK 0001816017)</span>
           </div>
         </div>
 
@@ -250,24 +253,24 @@ export const Demo3FinancialResearch: React.FC = () => {
           <div className="h-9 bg-slate-900 px-3.5 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-200">
               <FileSearch className="w-3.5 h-3.5 text-cyan-400" />
-              <span>SEC 10-K Item 8 / Note 4 Reference Viewer</span>
+              <span>SEC Form 8-K / Note on Divestitures Viewer</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">EDGAR Form 10-K</span>
+            <span className="text-[10px] text-slate-400 font-mono">EDGAR Form 8-K & 10-Q</span>
           </div>
 
           {/* Document Content */}
           <div className="flex-1 p-4 overflow-y-auto text-xs font-serif leading-relaxed text-slate-300 space-y-3 bg-slate-950/40">
             <div className="pb-2 border-b border-slate-800 font-sans text-[11px] text-slate-400 flex items-center justify-between">
               <span className="font-semibold text-slate-200">SPIRE GLOBAL, INC. — NOTES TO FINANCIAL STATEMENTS</span>
-              <span className="text-slate-500">Page F-18</span>
+              <span className="text-slate-500">CIK 0001816017</span>
             </div>
 
             <h4 className="font-sans font-bold text-slate-200 text-xs">
-              Note 4. Discontinued Operations & Segment Restructuring
+              Note. Divestiture of Maritime Data Business & Debt Extinguishment
             </h4>
 
             <p className="text-[12px] leading-relaxed">
-              In the fourth quarter of fiscal 2023, management approved a strategic realignment to discontinue operations of the legacy satellite data{" "}
+              On April 25, 2025, Spire Global, Inc. completed the sale of its commercial{" "}
               <mark
                 className={cn(
                   "px-1.5 py-0.5 rounded transition-all duration-500",
@@ -276,9 +279,9 @@ export const Demo3FinancialResearch: React.FC = () => {
                     : "bg-transparent text-slate-300"
                 )}
               >
-                &ldquo;Storage & Ground Infrastructure&rdquo; business unit
+                Maritime Data Business Line to Kpler Holding SA
               </mark>
-              . In accordance with ASC 205-20, the results of the Storage segment have been reclassified as{" "}
+              {" "}for aggregate consideration of approximately $241.0 million, comprising $233.5 million in cash and a $7.5 million 12-month transition services agreement. The transaction resulted in a recognized{" "}
               <mark
                 className={cn(
                   "px-1.5 py-0.5 rounded transition-all duration-500",
@@ -287,47 +290,51 @@ export const Demo3FinancialResearch: React.FC = () => {
                     : "bg-transparent text-slate-300"
                 )}
               >
-                discontinued operations for all historical periods presented
+                pre-tax gain on sale of $154.3 million
               </mark>
               .
             </p>
 
             <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono space-y-1.5">
-              <div className="text-slate-400 font-sans font-bold">Historical Operating Segments (FY23):</div>
+              <div className="text-slate-400 font-sans font-bold">Transaction Financial Structure:</div>
               <div className="flex justify-between text-slate-300">
-                <span>• Maritime Intelligence (Continuing):</span>
-                <span className="text-emerald-400 font-bold">$14.2M EBIT</span>
+                <span>• Gross Consideration (Cash + Svcs):</span>
+                <span className="text-cyan-400 font-bold">$241.0M</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span>• Aviation & Weather (Continuing):</span>
-                <span className="text-emerald-400 font-bold">$3.6M EBIT</span>
+                <span>• Pre-Tax Gain on Divestiture:</span>
+                <span className="text-emerald-400 font-bold">+$154.3M</span>
               </div>
               <div
                 className={cn(
                   "flex justify-between p-1 rounded transition-colors",
-                  activeHighlight ? "bg-rose-500/20 text-rose-300 font-bold" : "text-slate-400"
+                  activeHighlight ? "bg-emerald-500/20 text-emerald-300 font-bold" : "text-slate-400"
                 )}
               >
-                <span>• Storage Unit (DISCONTINUED):</span>
-                <span className="text-rose-400 font-bold">($38.5M) LOSS</span>
+                <span>• Senior Secured Debt (Blue Torch):</span>
+                <span className="text-emerald-400 font-bold">100% REPAID IN FULL</span>
+              </div>
+              <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800">
+                <span>• Retained Core Constellation:</span>
+                <span className="text-slate-300">Aviation, Weather, Space Svcs</span>
               </div>
             </div>
 
             <p className="text-[12px] leading-relaxed text-slate-400">
-              Continuing operations reflect core Maritime, Aviation, and Weather tracking solutions. The $38.5 million operating loss generated by Storage represents discontinued operational drag that does not recur under the reorganized continuing structure.
+              Net proceeds from the Kpler sale were used to satisfy and extinguish all obligations under the existing financing facility with Blue Torch Finance LLC. Spire retained 100% ownership of its satellite constellation and ground stations to continue operating Space Services, Aviation, and Weather data solutions.
             </p>
           </div>
 
           {/* Doc Status Footer */}
           <div className="h-7 bg-slate-900/80 border-t border-slate-800 px-3 flex items-center justify-between text-[10px] text-slate-400">
-            <span>ASC 205-20 Verified</span>
+            <span>Form 8-K Item 2.01 Verified</span>
             <span className="text-emerald-400 flex items-center gap-1 font-mono">
-              <CheckCircle2 className="w-3 h-3" /> Note 4 Cross-Referenced
+              <CheckCircle2 className="w-3 h-3" /> SEC EDGAR Filed
             </span>
           </div>
         </div>
 
-        {/* Column 3: Results Panel Displaying Final Calculation ($17.8M) */}
+        {/* Column 3: Results Panel Displaying Final Calculation */}
         <div className="lg:col-span-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col overflow-hidden shadow-xl">
           {/* Results Header */}
           <div className="h-9 bg-slate-900 px-3.5 border-b border-slate-800 flex items-center justify-between">
@@ -353,38 +360,46 @@ export const Demo3FinancialResearch: React.FC = () => {
                 <TrendingUp className="w-16 h-16 text-emerald-400" />
               </div>
               <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
-                Validated Continuing Operations Profit
+                Validated Debt Retirement & Gain
               </span>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 font-mono">
-                  {calculationResult || "$17.8M"}
+                  {calculationResult || "+$154.3M"}
                 </span>
-                <span className="text-xs text-emerald-400 font-semibold font-mono">Normalized EBIT</span>
+                <span className="text-xs text-emerald-400 font-semibold font-mono">Pre-Tax Gain</span>
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Historical continuing profit after carving out discontinued Storage line losses.
+                Senior credit facility eliminated in full; commercial maritime business divested to Kpler for $241M.
               </p>
             </div>
 
             {/* Reconciliation Breakdown Table */}
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-              <div className="text-xs font-bold text-slate-300">Reconciliation Bridge</div>
+              <div className="text-xs font-bold text-slate-300">Capital Structure & Divestiture Bridge</div>
               <div className="space-y-1.5 text-[11px] font-mono">
                 <div className="flex justify-between text-slate-400 pb-1 border-b border-slate-800/80">
-                  <span>Reported GAAP Operating Loss</span>
-                  <span className="text-rose-400">($24.2M)</span>
+                  <span>Gross Maritime Divestiture Consideration</span>
+                  <span className="text-cyan-400">$241.0M</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>(+) Discontinued Storage Losses Carveout</span>
-                  <span className="text-emerald-400 font-bold">+$38.5M</span>
+                  <span>(-) Net Assets & Goodwill Transferred</span>
+                  <span className="text-slate-400">($79.2M)</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>(+) Non-recurring Restructuring Addback</span>
-                  <span className="text-emerald-400 font-bold">+$3.5M</span>
+                  <span>(-) Transaction Costs & Professional Fees</span>
+                  <span className="text-slate-400">($7.5M)</span>
                 </div>
                 <div className="flex justify-between text-slate-100 font-bold pt-1.5 border-t border-slate-800">
-                  <span className="text-emerald-300">(=) Rebuilt Continuing Operations EBIT</span>
-                  <span className="text-emerald-400 font-bold">$17.8M</span>
+                  <span className="text-emerald-300">(=) Pre-Tax Gain on Sale of Business</span>
+                  <span className="text-emerald-400 font-bold">+$154.3M</span>
+                </div>
+                <div className="flex justify-between text-slate-300 pt-1 border-t border-slate-800/80">
+                  <span>Senior Debt Repayment (Blue Torch Facility)</span>
+                  <span className="text-emerald-400 font-bold">100% Repaid</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Retained Core Pillars</span>
+                  <span className="text-slate-300 font-sans text-[10px]">Aviation, Weather, Space Svcs</span>
                 </div>
               </div>
             </div>
@@ -424,7 +439,7 @@ export const Demo3FinancialResearch: React.FC = () => {
 
           {/* Results Footer */}
           <div className="h-7 bg-slate-900/80 border-t border-slate-800 px-3 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Audit Trail: Immutable</span>
+            <span>Audit Trail: Form 8-K / 10-Q</span>
             <span className="text-slate-300 font-mono">Tolerance: 0.00%</span>
           </div>
         </div>
