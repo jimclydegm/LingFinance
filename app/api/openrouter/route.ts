@@ -4,11 +4,7 @@ import { LING_MODEL_ID } from "@/lib/openrouter";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, systemPrompt } = body;
-
-    if (!prompt) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
-    }
+    const { prompt, systemPrompt, messages: incomingMessages, tools, tool_choice } = body;
 
     const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
 
@@ -19,11 +15,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const messages = [];
-    if (systemPrompt) {
-      messages.push({ role: "system", content: systemPrompt });
+    let messages = incomingMessages;
+    if (!messages) {
+      if (!prompt) {
+        return NextResponse.json({ error: "Prompt or messages array is required" }, { status: 400 });
+      }
+      messages = [];
+      if (systemPrompt) {
+        messages.push({ role: "system", content: systemPrompt });
+      }
+      messages.push({ role: "user", content: prompt });
     }
-    messages.push({ role: "user", content: prompt });
+
+    const payload: Record<string, unknown> = {
+      model: LING_MODEL_ID,
+      messages,
+    };
+
+    if (tools && Array.isArray(tools) && tools.length > 0) {
+      payload.tools = tools;
+      if (tool_choice) {
+        payload.tool_choice = tool_choice;
+      }
+    }
 
     const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -33,10 +47,7 @@ export async function POST(req: NextRequest) {
         "HTTP-Referer": req.headers.get("origin") || "http://localhost:3000",
         "X-Title": "Ling 3 Flash Fin Demo",
       },
-      body: JSON.stringify({
-        model: LING_MODEL_ID,
-        messages,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!openRouterResponse.ok) {

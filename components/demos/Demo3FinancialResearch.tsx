@@ -15,7 +15,7 @@ import {
   BadgePercent,
   TrendingUp,
 } from "lucide-react";
-import { queryLingFinance } from "@/lib/openrouter";
+import { executeLingAgentLoop, ToolDefinition } from "@/lib/openrouter";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
 import { cn } from "@/lib/utils";
 
@@ -27,17 +27,52 @@ interface ToolCallLog {
   status: "ok" | "pending" | "extracting";
 }
 
-const MOCK_TOOL_CALL_TEMPLATES = [
-  { source: "SEC_EDGAR", action: "Query CIK 0001816017 (Spire Global, Inc.)" },
-  { source: "EDGAR_API", action: "Fetch Form 8-K Item 2.01 Completion of Asset Disposition (Kpler Sale)" },
-  { source: "XBRL_PARSER", action: "Parse Note on Business Divestiture: Maritime Data Business line ($241M)" },
-  { source: "DOC_EXTRACT", action: "Extract Gain on Sale of Business: $154.3M recognized pre-tax" },
-  { source: "SEC_EDGAR", action: "Fetch Form 10-Q Item 1 Note on Financing Agreement & Debt Extinguishment" },
-  { source: "FIN_ENGINE", action: "Verify complete debt payoff: Full retirement of Blue Torch Credit Facility" },
-  { source: "CALC_GRAPH", action: "Rebuild Continuing Operations Core Run-Rate: Space Services, Aviation, Weather" },
-  { source: "RECONCILE", action: "Isolate one-time divestiture gain ($154.3M) from continuing operating loss" },
-  { source: "NORMALIZE", action: "Execute non-GAAP adjustments: Transition service fees & normalized EBITDA" },
-  { source: "VALIDATE", action: "Verify Statement of Cash Flows: Retained satellite network & government maritime" },
+const FINANCIAL_RESEARCH_TOOLS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "fetch_sec_filing",
+      description: "Query SEC EDGAR database to retrieve authentic Form 8-K, 10-Q, or 10-K filings for a company by CIK",
+      parameters: {
+        type: "object",
+        properties: {
+          cik: { type: "string", description: "10-digit Central Index Key (e.g. '0001816017')" },
+          form: { type: "string", enum: ["8-K", "10-Q", "10-K"], description: "Filing form type" },
+          item: { type: "string", description: "Specific item or note (e.g. 'Item 2.01')" },
+        },
+        required: ["cik", "form"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "parse_xbrl_footnote",
+      description: "Extract structured accounting disclosures from SEC filings regarding divestitures, transaction consideration, and gains",
+      parameters: {
+        type: "object",
+        properties: {
+          cik: { type: "string", description: "10-digit Central Index Key" },
+          topic: { type: "string", description: "Disclosure topic to extract, e.g. 'divestiture', 'debt', or 'segments'" },
+        },
+        required: ["cik", "topic"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_debt_payoff",
+      description: "Verify senior credit facility balance, debt extinguishment, and release of collateral liens",
+      parameters: {
+        type: "object",
+        properties: {
+          cik: { type: "string", description: "10-digit Central Index Key" },
+        },
+        required: ["cik"],
+      },
+    },
+  },
 ];
 
 export const Demo3FinancialResearch: React.FC = () => {
@@ -67,75 +102,78 @@ export const Demo3FinancialResearch: React.FC = () => {
     setCalculationResult(null);
     setModelReasoning("");
 
-    // Structured SEC EDGAR and XBRL extraction calls sequence
-    let callCounter = 0;
-    const totalCalls = 55;
+    let toolCounter = 0;
 
-    const logInterval = setInterval(() => {
-      if (callCounter < totalCalls) {
-        callCounter++;
-        const template = MOCK_TOOL_CALL_TEMPLATES[callCounter % MOCK_TOOL_CALL_TEMPLATES.length];
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}.${now
-          .getMilliseconds()
-          .toString()
-          .padStart(3, "0")}`;
-
-        const newLog: ToolCallLog = {
-          id: callCounter,
-          timestamp: timeStr,
-          source: template.source,
-          action: `[#${callCounter.toString().padStart(2, "0")}] ${template.action}`,
-          status: callCounter === totalCalls ? "ok" : "extracting",
-        };
-
-        setTerminalLogs((prev) => [...prev, newLog]);
-
-        if (callCounter >= 25) {
-          setActiveHighlight(true);
-        }
-      }
-    }, 45);
-
-    // Execute OpenRouter API call with authentic Spire Global disclosures
     const researchPrompt =
       "Perform a forensic equity research analysis on Spire Global, Inc. (NYSE: SPIR, CIK 0001816017) regarding the divestiture of its Commercial Maritime Data Business line to Kpler:\n" +
-      "1. Analyze the transaction terms: $241M total consideration ($233.5M cash received + $7.5M 12-month transition service agreement) and the $154.3M pre-tax gain recognized.\n" +
-      "2. Evaluate balance sheet de-leveraging: complete elimination of outstanding senior secured debt under the Blue Torch credit facility.\n" +
-      "3. Reconstruct continuing operations: isolate the one-time divestiture gain from core operational performance across retained pillars (Aviation, Weather, Space Services, and government maritime contracts).\n" +
-      "Provide structured GAAP-to-non-GAAP reconciliation steps and assess run-rate operating performance normalized for the carve-out.";
+      "1. Use the fetch_sec_filing and parse_xbrl_footnote tools to inspect Form 8-K (Item 2.01) and Form 10-Q disclosures to extract gross consideration ($241M total, $233.5M cash) and the pre-tax gain recognized.\n" +
+      "2. Use verify_debt_payoff to confirm complete elimination of the Blue Torch Finance LLC senior credit facility.\n" +
+      "3. Examine retained core business pillars (Aviation, Weather, Space Services, government maritime).\n" +
+      "Synthesize your findings with structured GAAP-to-non-GAAP reconciliation steps and assess normalized continuing operations.";
 
     try {
-      const response = await queryLingFinance(researchPrompt, {
+      const { finalContent } = await executeLingAgentLoop(researchPrompt, {
         systemPrompt:
-          "You are an expert senior forensic accounting and equity research specialist powered by Ling 3.0 Flash Fin. Provide precise, grounded mathematical reconciliation steps and analysis on Spire Global's (CIK 0001816017) Kpler divestiture, debt retirement, and normalized continuing operations. Do not hallucinate artificial targets or insert arbitrary plugs.",
+          "You are an expert senior forensic accounting and equity research specialist powered by Ling 3.0 Flash Fin. " +
+          "You MUST use the provided SEC EDGAR and XBRL tools to inspect the authentic filings before generating your conclusions. " +
+          "Provide precise mathematical reconciliation steps and analysis on Spire Global's (CIK 0001816017) Kpler divestiture, debt retirement, and normalized continuing operations.",
+        tools: FINANCIAL_RESEARCH_TOOLS,
+        maxTurns: 6,
+        onToolCallStart: (call) => {
+          toolCounter++;
+          const now = new Date();
+          const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}.${now
+            .getMilliseconds()
+            .toString()
+            .padStart(3, "0")}`;
+
+          const newLog: ToolCallLog = {
+            id: toolCounter,
+            timestamp: timeStr,
+            source: call.function.name.toUpperCase(),
+            action: `[#${toolCounter.toString().padStart(2, "0")}] Querying ${call.function.name}(${call.function.arguments})`,
+            status: "extracting",
+          };
+
+          setTerminalLogs((prev) => [...prev, newLog]);
+          setActiveHighlight(true);
+        },
+        onToolCallComplete: (call, result) => {
+          setTerminalLogs((prev) =>
+            prev.map((log) =>
+              log.source === call.function.name.toUpperCase() && log.status === "extracting"
+                ? {
+                    ...log,
+                    status: "ok",
+                    action: `${log.action} → Ret: ${result.slice(0, 55).replace(/\n/g, " ")}...`,
+                  }
+                : log
+            )
+          );
+        },
+        executeTool: async (name, args) => {
+          const res = await fetch("/api/sec-edgar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tool: name, arguments: args }),
+          });
+
+          if (!res.ok) {
+            throw new Error(`Tool ${name} execution failed`);
+          }
+
+          const data = await res.json();
+          return typeof data.result === "string" ? data.result : JSON.stringify(data.result);
+        },
       });
 
-      // Clear interval if not yet completed and ensure all logs are rendered
-      clearInterval(logInterval);
-
-      const finalLogs: ToolCallLog[] = [];
-      for (let i = 1; i <= 55; i++) {
-        const template = MOCK_TOOL_CALL_TEMPLATES[i % MOCK_TOOL_CALL_TEMPLATES.length];
-        finalLogs.push({
-          id: i,
-          timestamp: `09:14:${(20 + Math.floor(i / 10)).toString().padStart(2, "0")}.${(i * 17) % 999}`,
-          source: template.source,
-          action: `[#${i.toString().padStart(2, "0")}] ${template.action}`,
-          status: "ok",
-        });
-      }
-      setTerminalLogs(finalLogs);
-      setActiveHighlight(true);
-
-      setModelReasoning(response);
+      setModelReasoning(finalContent);
       setCalculationResult("+$154.3M Gain");
       setCompleted(true);
     } catch (err: unknown) {
-      clearInterval(logInterval);
       const msg = err instanceof Error ? err.message : "Financial research execution failed.";
       setError(msg);
     } finally {
@@ -184,7 +222,7 @@ export const Demo3FinancialResearch: React.FC = () => {
 
       {/* Dense Technical Three-Column Layout */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 overflow-hidden">
-        {/* Column 1: Terminal Window Simulating Tool Calls (55 tool calls) */}
+        {/* Column 1: Live Terminal Window Displaying Real Autonomous Tool Calls */}
         <div className="lg:col-span-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col overflow-hidden shadow-2xl">
           {/* Terminal Header */}
           <div className="h-9 bg-slate-900/90 px-3.5 border-b border-slate-800 flex items-center justify-between">
@@ -200,7 +238,7 @@ export const Demo3FinancialResearch: React.FC = () => {
               </span>
             </div>
             <div className="text-[10px] font-mono text-slate-400">
-              {terminalLogs.length}/55 calls
+              {terminalLogs.length} live tool calls
             </div>
           </div>
 
@@ -211,7 +249,7 @@ export const Demo3FinancialResearch: React.FC = () => {
                 <Cpu className="w-8 h-8 mb-2 text-slate-700 animate-pulse" />
                 <p className="text-slate-400">Tool execution pipeline idle.</p>
                 <p className="text-[10px] text-slate-600 mt-1">
-                  Click &quot;Start Research&quot; to initiate 55 structured SEC EDGAR and XBRL extraction calls.
+                  Click &quot;Start Research&quot; to initiate live autonomous SEC EDGAR and XBRL tool calling with Ling 3.0 Flash Fin.
                 </p>
               </div>
             ) : (
@@ -241,7 +279,7 @@ export const Demo3FinancialResearch: React.FC = () => {
                   isRunning ? "bg-amber-400 animate-ping" : completed ? "bg-emerald-400" : "bg-slate-600"
                 )}
               />
-              {isRunning ? "Dispatching EDGAR calls..." : completed ? "55 Calls Completed" : "Ready"}
+              {isRunning ? "Executing live tool call..." : completed ? `${terminalLogs.length} Real Tool Calls Executed` : "Agent Ready"}
             </span>
             <span>Target: Spire Global (SPIR, CIK 0001816017)</span>
           </div>
