@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { BarChart3, Table, Search, Sparkles, BookOpen, Layers } from "lucide-react";
+import {
+  BarChart3,
+  Table,
+  Search,
+  Sparkles,
+  BookOpen,
+  Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type DemoTab = "demo1" | "demo2" | "demo3";
@@ -17,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
       id: "demo1" as DemoTab,
       title: "Finance Report & Viz",
       subtitle: "NVIDIA Growth Drivers",
-      description: "Hyperscale vs ACIE revenue parity & Recharts visualization",
+      description: "Source-backed NVIDIA revenue comparison",
       icon: BarChart3,
       badge: "Demo 1",
       badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -26,16 +33,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
       id: "demo2" as DemoTab,
       title: "Financial Modeling",
       subtitle: "Excel Workbook & Grid",
-      description: "Alphabet 6-segment actuals mapping & 5,000+ formula updates",
+      description: "Alphabet revenue mapping & calculated dependencies",
       icon: Table,
       badge: "Demo 2",
       badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
     },
     {
       id: "demo3" as DemoTab,
-      title: "Financial Research",
-      subtitle: "SEC Tool Calls & 10-K",
-      description: "Spire Global (SPIR) Kpler divestiture & debt retirement analysis",
+      title: "Financial Evidence Review",
+      subtitle: "Source Tools & Disclosures",
+      description:
+        "Spire Inc. (SR): Storage & Marketing discontinued operations",
       icon: Search,
       badge: "Demo 3",
       badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
@@ -67,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                   "w-full text-left p-3.5 rounded-xl transition-all duration-200 border flex flex-col gap-2 group relative",
                   isActive
                     ? "bg-slate-900/90 border-slate-700 shadow-lg shadow-black/40 text-white"
-                    : "bg-slate-900/30 border-transparent hover:bg-slate-900/60 hover:border-slate-800 text-slate-400 hover:text-slate-200"
+                    : "bg-slate-900/30 border-transparent hover:bg-slate-900/60 hover:border-slate-800 text-slate-400 hover:text-slate-200",
                 )}
               >
                 {isActive && (
@@ -80,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                         "p-2 rounded-lg transition-colors",
                         isActive
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : "bg-slate-800/80 text-slate-400 group-hover:text-slate-300"
+                          : "bg-slate-800/80 text-slate-400 group-hover:text-slate-300",
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -92,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                   <span
                     className={cn(
                       "text-[10px] font-mono px-2 py-0.5 rounded-full border",
-                      item.badgeColor
+                      item.badgeColor,
                     )}
                   >
                     {item.badge}
@@ -120,7 +128,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
             <span>Ling 3.0 Flash Fin</span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Specialized in quantitative financial analysis, multi-statement cross-validation, and high-precision financial modeling.
+            Specialized in quantitative financial analysis, multi-statement
+            cross-validation, and high-precision financial modeling.
           </p>
           <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400 font-mono">
             <span>Provider: InclusionAI</span>

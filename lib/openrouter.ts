@@ -1,105 +1,94 @@
+export const LING_MODEL_ID = "inclusionai/ling-3.0-flash-fin:free";
 export interface ToolCall {
   id: string;
-  type: 'function';
-  function: {
-    name: string;
-    arguments: string;
-  };
+  type: "function";
+  function: { name: string; arguments: string };
 }
-
 export interface OpenRouterMessage {
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: "user" | "assistant" | "system" | "tool";
   content?: string | null;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
 }
-
 export interface ToolDefinition {
-  type: 'function';
+  type: "function";
   function: {
     name: string;
     description: string;
     parameters: Record<string, unknown>;
   };
 }
-
 export interface OpenRouterResponse {
-  id?: string;
-  choices?: Array<{
-    message?: {
-      role: string;
-      content: string | null;
-      tool_calls?: ToolCall[];
-    };
-    finish_reason?: string;
-  }>;
-  error?: {
-    message: string;
-    code?: number;
-  };
+  choices?: { message?: OpenRouterMessage; finish_reason?: string }[];
+  error?: { message: string } | string;
 }
-
-export const LING_MODEL_ID = "inclusionai/ling-3.0-flash-fin:free";
-
-/**
- * Sends a single chat completion request to OpenRouter.
- */
-export async function queryLingFinance(prompt: string, options?: { systemPrompt?: string }): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
-
-  const messages: OpenRouterMessage[] = [];
-  if (options?.systemPrompt) {
-    messages.push({ role: 'system', content: options.systemPrompt });
-  }
-  messages.push({ role: 'user', content: prompt });
-
-  if (apiKey) {
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
-          "X-Title": "Ling 3 Flash Fin Demo",
-        },
-        body: JSON.stringify({
-          model: LING_MODEL_ID,
-          messages: messages,
-        }),
-      });
-
-      if (response.ok) {
-        const data: OpenRouterResponse = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
-      }
-    } catch (directErr) {
-      console.warn("Direct OpenRouter call network error, falling back to /api/openrouter:", directErr);
-    }
-  }
-
-  // Fallback to internal API route
-  const fallbackRes = await fetch("/api/openrouter", {
+async function completion(payload: object): Promise<OpenRouterMessage> {
+  const res = await fetch("/api/openrouter", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, systemPrompt: options?.systemPrompt }),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(120000),
   });
-
-  if (!fallbackRes.ok) {
-    const errText = await fallbackRes.text();
-    throw new Error(`OpenRouter API error: ${errText}`);
-  }
-
-  const fallbackData: OpenRouterResponse = await fallbackRes.json();
-  const resText = fallbackData.choices?.[0]?.message?.content;
-  if (!resText) {
-    throw new Error("Received empty completion from Ling 3.0 Flash Fin.");
-  }
-  return resText;
+  const data: OpenRouterResponse = await res.json();
+  if (!res.ok || data.error)
+    throw new Error(
+      typeof data.error === "string"
+        ? data.error
+        : data.error?.message || `OpenRouter HTTP ${res.status}`,
+    );
+  const choice = data.choices?.[0];
+  if (choice?.finish_reason === "length")
+    throw new Error(
+      "Model output exceeded the token limit. No completed analysis was produced.",
+    );
+  if (!choice?.message)
+    throw new Error("OpenRouter returned no assistant message.");
+  return choice.message;
 }
-
+export async function queryLingFinance(
+  prompt: string,
+  options?: { systemPrompt?: string; schema?: Record<string, unknown> },
+) {
+  const message = await completion({
+    ...(options?.schema
+      ? {
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "submit_analysis",
+                description:
+                  "Submit the requested financial analysis with calculated metrics.",
+                parameters: options.schema,
+              },
+            },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "submit_analysis" },
+          },
+        }
+      : {}),
+    messages: [
+      {
+        role: "system",
+        content:
+          options?.systemPrompt ||
+          "Use only supplied evidence. Clearly separate facts, calculations and hypotheses. Do not invent sources.",
+      },
+      { role: "user", content: prompt },
+    ],
+  });
+  if (options?.schema) {
+    const calls = message.tool_calls;
+    if (calls?.length !== 1 || calls[0].function.name !== "submit_analysis")
+      throw new Error("Model did not submit the required analysis structure.");
+    return calls[0].function.arguments;
+  }
+  if (!message.content?.trim()) throw new Error("Model returned empty output.");
+  return message.content;
+}
 export interface AgentLoopOptions {
   systemPrompt?: string;
   tools: ToolDefinition[];
@@ -108,134 +97,42 @@ export interface AgentLoopOptions {
   onToolCallComplete?: (call: ToolCall, result: string) => void;
   executeTool: (name: string, args: Record<string, unknown>) => Promise<string>;
 }
-
-/**
- * Autonomous multi-turn agent execution loop with real tool dispatch.
- */
 export async function executeLingAgentLoop(
   prompt: string,
-  options: AgentLoopOptions
-): Promise<{ finalContent: string; totalToolCalls: number }> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
-  const messages: OpenRouterMessage[] = [];
-
-  if (options.systemPrompt) {
-    messages.push({ role: 'system', content: options.systemPrompt });
-  }
-  messages.push({ role: 'user', content: prompt });
-
-  const maxTurns = options.maxTurns || 6;
-  let turn = 0;
+  options: AgentLoopOptions,
+) {
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: options.systemPrompt || "" },
+    { role: "user", content: prompt },
+  ];
   let totalToolCalls = 0;
-
-  while (turn < maxTurns) {
-    turn++;
-
-    const payload: Record<string, unknown> = {
-      model: LING_MODEL_ID,
-      messages: messages,
+  for (let turn = 0; turn < (options.maxTurns ?? 6); turn++) {
+    const message = await completion({
+      messages,
       tools: options.tools,
-    };
-
-    let data: OpenRouterResponse;
-
-    // Prefer direct call if client apiKey is available, otherwise use API route
-    if (apiKey) {
-      try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
-            "X-Title": "Ling 3 Flash Fin Agent",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-          data = await res.json();
-        } else {
-          // Fallback to proxy
-          const fallback = await fetch("/api/openrouter", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          data = await fallback.json();
-        }
-      } catch {
-        const fallback = await fetch("/api/openrouter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        data = await fallback.json();
-      }
-    } else {
-      const fallback = await fetch("/api/openrouter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      data = await fallback.json();
+      tool_choice: turn === 0 ? "required" : "auto",
+    });
+    messages.push(message);
+    if (!message.tool_calls?.length) {
+      if (!totalToolCalls || !message.content?.trim())
+        throw new Error("Research ended without tools or a final response.");
+      return { finalContent: message.content, totalToolCalls };
     }
-
-    if (data.error) {
-      throw new Error(data.error.message || "Error from Ling 3.0 Flash Fin API");
-    }
-
-    const choice = data.choices?.[0];
-    if (!choice || !choice.message) {
-      throw new Error("No response choice returned from Ling 3.0 Flash Fin.");
-    }
-
-    const assistantMsg = choice.message;
-    const toolCalls = assistantMsg.tool_calls;
-
-    // If the model requested tool calls, execute each tool
-    if (toolCalls && toolCalls.length > 0) {
-      messages.push({
-        role: 'assistant',
-        content: assistantMsg.content || null,
-        tool_calls: toolCalls,
-      });
-
-      for (const call of toolCalls) {
-        totalToolCalls++;
-        options.onToolCallStart?.(call);
-
-        let parsedArgs: Record<string, unknown> = {};
-        try {
-          parsedArgs = JSON.parse(call.function.arguments);
-        } catch {
-          parsedArgs = {};
-        }
-
-        const toolResult = await options.executeTool(call.function.name, parsedArgs);
-        options.onToolCallComplete?.(call, toolResult);
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          name: call.function.name,
-          content: toolResult,
-        });
-      }
-      // Loop continues with updated message history including tool results
-    } else {
-      // No more tool calls; model returned final completion
-      return {
-        finalContent: assistantMsg.content || "Analysis completed.",
-        totalToolCalls,
-      };
+    for (const call of message.tool_calls) {
+      if (++totalToolCalls > 12)
+        throw new Error("Tool limit reached; research incomplete.");
+      options.onToolCallStart?.(call);
+      if (!options.tools.some((t) => t.function.name === call.function.name))
+        throw new Error("Model requested an unsupported tool.");
+      const args = JSON.parse(call.function.arguments);
+      if (!args || typeof args !== "object" || Array.isArray(args))
+        throw new Error("Invalid tool arguments.");
+      const result = await options.executeTool(call.function.name, args);
+      options.onToolCallComplete?.(call, result);
+      messages.push({ role: "tool", tool_call_id: call.id, content: result });
     }
   }
-
-  // If max turns reached, return the latest assistant text
-  const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant' && m.content);
-  return {
-    finalContent: lastAssistant?.content || "Financial analysis execution complete.",
-    totalToolCalls,
-  };
+  throw new Error(
+    "Turn limit reached; research incomplete. No verified result.",
+  );
 }

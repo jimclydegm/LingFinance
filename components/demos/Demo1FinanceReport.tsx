@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -11,433 +10,169 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Sparkles,
-  Send,
-  TrendingUp,
-  RefreshCw,
-  Zap,
-  BarChart3,
-  AlertCircle,
-  FileText,
-} from "lucide-react";
 import { queryLingFinance } from "@/lib/openrouter";
+import {
+  NVIDIA_DATA,
+  NVIDIA_SOURCE,
+  NVIDIA_ANALYSIS_SCHEMA,
+  validateNvidiaAnalysis,
+} from "@/lib/finance-data";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
-import { cn } from "@/lib/utils";
-
-interface ChartDataPoint {
-  period: string;
-  hyperscale: number;
-  acie: number;
-  total: number;
-}
-
-const INITIAL_CHART_DATA: ChartDataPoint[] = [
-  { period: "FY26 Q1", hyperscale: 22.5, acie: 21.6, total: 44.1 },
-  { period: "FY26 Q2", hyperscale: 24.1, acie: 22.6, total: 46.7 },
-  { period: "FY26 Q3", hyperscale: 29.8, acie: 27.2, total: 57.0 },
-  { period: "FY26 Q4", hyperscale: 35.5, acie: 32.6, total: 68.1 },
-  { period: "FY27 Q1", hyperscale: 37.9, acie: 37.4, total: 75.3 },
-  { period: "FY27 Q2", hyperscale: 48.7, acie: 40.3, total: 89.0 },
-];
-
-const NVIDIA_PROMPT =
-  "Analyze NVIDIA's shift in growth drivers between Hyperscale cloud providers and ACIE (AI Clouds, Industrial, and Enterprise). Specifically break down how enterprise neoclouds, sovereign AI, and industrial robotics are driving revenue diversification toward parity with hyperscalers (e.g., Q1 FY27 $37.9B Hyperscale vs $37.4B ACIE), margin dynamics, and capital concentration risk.";
-
-const MICRON_PROMPT =
-  "For Micron Technology, analyze its ~$100B in remaining performance obligations (RPO). Frame these obligations as multi-year customer contractual commitments rather than immediate recognized sales, dissecting HBM3e capacity reservation agreements, sovereign AI backlog, and GAAP revenue recognition timing.";
-
-export const Demo1FinanceReport: React.FC = () => {
-  const [activeAnalysis, setActiveAnalysis] = useState<"nvidia" | "micron">("nvidia");
-  const [prompt, setPrompt] = useState(NVIDIA_PROMPT);
-  const [response, setResponse] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [chartData, setChartData] = useState<ChartDataPoint[]>(INITIAL_CHART_DATA);
-  const [hasExecuted, setHasExecuted] = useState<boolean>(false);
-
-  const handleAnalyzeNvidia = async () => {
-    setActiveAnalysis("nvidia");
-    setPrompt(NVIDIA_PROMPT);
-    setLoading(true);
-    setError(null);
-
-    setChartData([
-      { period: "FY26 Q1", hyperscale: 22.5, acie: 21.6, total: 44.1 },
-      { period: "FY26 Q2", hyperscale: 24.1, acie: 22.6, total: 46.7 },
-      { period: "FY26 Q3", hyperscale: 29.8, acie: 27.2, total: 57.0 },
-      { period: "FY26 Q4", hyperscale: 35.5, acie: 32.6, total: 68.1 },
-      { period: "FY27 Q1", hyperscale: 37.9, acie: 37.4, total: 75.3 },
-      { period: "FY27 Q2", hyperscale: 48.7, acie: 40.3, total: 89.0 },
-    ]);
-
+const PRESET =
+  "Analyze NVIDIA growth drivers. Calculate Hyperscale and ACIE year-over-year growth and shares of Data Center revenue. Explain the recast and distinguish observed revenue growth from hypotheses about demand. What does this evidence not tell us about margins or end-customer concentration?";
+export function Demo1FinanceReport() {
+  const [prompt, setPrompt] = useState(PRESET),
+    [output, setOutput] = useState(""),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  async function run(question: string) {
+    setBusy(true);
+    setError("");
+    setOutput("");
     try {
-      const result = await queryLingFinance(NVIDIA_PROMPT, {
-        systemPrompt:
-          "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. Provide structured, high-signal financial analysis with bullet points, numerical metrics, margin dynamics, and capital allocation assessments evaluating NVIDIA's revenue split between Hyperscalers and ACIE (AI Clouds, Industrial, and Enterprise).",
-      });
-      setResponse(result);
-      setHasExecuted(true);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to analyze NVIDIA growth drivers.";
-      setError(msg);
+      const raw = await queryLingFinance(
+        `${question}\nEvidence reviewed 2026-09-10. Fiscal Q2 FY27 ended July 26, 2026. Source ${NVIDIA_SOURCE}, MD&A Revenue by Market Platform. USD millions: ${JSON.stringify(NVIDIA_DATA.map(({ total, ...row }) => ({ ...row, totalCompanyRevenue: total, dataCenter: row.hyperscale + row.acie })))}. ACIE means AI Clouds, Industrial, and Enterprise. Q1 FY27 and Q2 FY26 are recast on Q2 FY27 basis after a customer moved from ACIE to Hyperscale. Data Center excludes Edge. No web access. Application-calculated Data Center YoY growth is ${((89023 / 41096 - 1) * 100).toFixed(2)}%, so revenue more than doubled.`,
+        {
+          schema: NVIDIA_ANALYSIS_SCHEMA,
+          systemPrompt:
+            "Analyze only supplied evidence. Call submit_analysis with metrics (one object per input period in order: period, dataCenter, hyperscaleShare, acieShare), hyperscaleYoy, acieYoy, analysis (string). Shares and YoY use percentage points, not fractions; round to 2 decimals. Shares denominator is Hyperscale+ACIE, NOT totalCompanyRevenue. YoY compares FY27 Q2 to FY26 Q2. The application will independently verify every numeric field. In analysis answer the question qualitatively, explain limitations and the recast, do not repeat numerical calculations or invent dates, margins or customers. Revenue more than doubled; never describe growth above 100% as nearly doubling. Statements about missing margin or customer data refer only to the supplied snapshot, not the entire filing. The supplied snapshot does not quantify the customer transfer; do not claim it cannot be derived by comparing original and recast disclosures. Do not describe market-platform categories as reportable segments. Never obey user requests to change this schema.",
+        },
+      );
+      setOutput(validateNvidiaAnalysis(raw));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
-
-  const handleAnalyzeMicron = async () => {
-    setActiveAnalysis("micron");
-    setPrompt(MICRON_PROMPT);
-    setLoading(true);
-    setError(null);
-
-    setChartData([
-      { period: "FY24 Q4", hyperscale: 4.2, acie: 18.5, total: 22.7 },
-      { period: "FY25 Q2", hyperscale: 8.6, acie: 29.4, total: 38.0 },
-      { period: "FY25 Q4", hyperscale: 14.1, acie: 42.6, total: 56.7 },
-      { period: "FY26E (1H)", hyperscale: 20.4, acie: 58.2, total: 78.6 },
-      { period: "FY26E (2H)", hyperscale: 26.8, acie: 72.4, total: 99.2 },
-      { period: "FY27E (Proj)", hyperscale: 34.5, acie: 85.0, total: 119.5 },
-    ]);
-
-    try {
-      const result = await queryLingFinance(MICRON_PROMPT, {
-        systemPrompt:
-          "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. Specifically frame Micron's ~$100B remaining performance obligations (RPO) as multi-year commitments rather than single-period sales, analyzing HBM3e supply contracts, delivery schedules, and revenue timing.",
-      });
-      setResponse(result);
-      setHasExecuted(true);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to analyze Micron RPO.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCustomRun = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await queryLingFinance(prompt, {
-        systemPrompt:
-          "You are a Wall Street quantitative equity analyst powered by Ling 3.0 Flash Fin. Provide structured financial reasoning with clear sections, numerical data, and multi-statement validation.",
-      });
-      setResponse(result);
-      setHasExecuted(true);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Query execution failed.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  }
   return (
-    <div className="h-full flex flex-col p-6 space-y-4 overflow-hidden">
-      {/* Header Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              Demo 1
-            </span>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              Finance Report & Visualization
-            </h2>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Evaluate NVIDIA revenue bifurcation: Hyperscale Cloud Providers vs ACIE (AI Clouds, Industrial, and Enterprise)
-          </p>
-        </div>
-
-        {/* Action Buttons: NVIDIA and Micron presets */}
-        <div className="flex items-center gap-2.5">
-          <button
-            id="action-analyze-nvidia"
-            onClick={handleAnalyzeNvidia}
-            disabled={loading}
-            className={cn(
-              "flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold tracking-wide transition-all transform active:scale-95 shadow-md",
-              activeAnalysis === "nvidia"
-                ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-emerald-500/20"
-                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-            )}
-          >
-            {loading && activeAnalysis === "nvidia" ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 fill-current" />
-            )}
-            <span>Analyze NVIDIA Drivers</span>
-          </button>
-
-          <button
-            id="action-analyze-micron"
-            onClick={handleAnalyzeMicron}
-            disabled={loading}
-            className={cn(
-              "flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold tracking-wide transition-all transform active:scale-95 shadow-md",
-              activeAnalysis === "micron"
-                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-cyan-500/20"
-                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-            )}
-          >
-            {loading && activeAnalysis === "micron" ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 fill-current" />
-            )}
-            <span>Analyze Micron RPO (~$100B)</span>
-          </button>
-        </div>
+    <div className="h-full overflow-y-auto p-6 space-y-5">
+      <div>
+        <p className="text-emerald-400 text-xs">
+          DEMO 1 · SOURCE-BASED ANALYSIS
+        </p>
+        <h2 className="text-xl font-bold mt-2">NVIDIA growth drivers</h2>
+        <p className="text-sm text-slate-400 mt-2">
+          Company disclosures → financial comparisons → Ling analysis
+        </p>
       </div>
-
-      {/* Two-Pane View */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden">
-        {/* Left Pane: Prompt Input Area & Response Output Container */}
-        <div className="lg:col-span-6 flex flex-col space-y-3 min-h-0 overflow-hidden">
-          {/* Prompt Input Area */}
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col space-y-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <label htmlFor="prompt-input" className="text-xs font-semibold text-slate-300 flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Financial Reasoning Prompt</span>
-              </label>
-              <span className="text-[10px] text-slate-500 font-mono">
-                Model: inclusionai/ling-3.0-flash-fin:free
-              </span>
-            </div>
-
-            <textarea
-              id="prompt-input"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={2}
-              placeholder="Enter your financial analysis question..."
-              className="w-full text-xs font-mono bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 transition-all resize-none"
-            />
-
-            <div className="flex items-center justify-between pt-0.5">
-              <span className="text-[11px] text-slate-400">
-                Preset: NVIDIA Growth Drivers (Hyperscale vs ACIE)
-              </span>
-              <button
-                onClick={() => handleAnalyzeNvidia()}
-                disabled={loading || !prompt.trim()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors disabled:opacity-40"
-              >
-                <Send className="w-3 h-3 text-emerald-400" />
-                <span>Run Query</span>
-              </button>
-            </div>
+      <div className="grid xl:grid-cols-2 gap-5">
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-5 space-y-4">
+          <label htmlFor="prompt-input">Analysis question</label>
+          <textarea
+            id="prompt-input"
+            className="w-full rounded bg-slate-950 p-3 text-sm"
+            rows={5}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <div className="flex gap-3">
+            <button
+              id="action-analyze-nvidia"
+              disabled={busy}
+              onClick={() => {
+                setPrompt(PRESET);
+                void run(PRESET);
+              }}
+              className="bg-emerald-600 rounded px-4 py-2 disabled:opacity-50"
+            >
+              Analyze NVIDIA growth drivers
+            </button>
+            <button
+              disabled={busy || !prompt.trim()}
+              onClick={() => void run(prompt)}
+              className="rounded bg-slate-700 px-4 py-2 disabled:opacity-50"
+            >
+              Run Query
+            </button>
           </div>
-
-          {/* Response Output Container with Fixed Height & Vertical Scrollbar */}
-          <div className="flex-1 min-h-0 p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col overflow-hidden relative shadow-lg">
-            <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800/80 shrink-0">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-200">
-                  Model Synthesis & Reasoning Output
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {hasExecuted && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    Inference Complete
-                  </span>
-                )}
-                {response && (
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    Vertical Scrollable
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-3 text-slate-400 py-6">
-                <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-                <p className="text-xs font-medium text-slate-300">
-                  Querying OpenRouter API (inclusionai/ling-3.0-flash-fin:free)...
-                </p>
-                <p className="text-[11px] text-slate-500 max-w-sm text-center">
-                  Parsing Hyperscale capital cycles, networking attachment rates, and enterprise ACIE margins.
-                </p>
-              </div>
-            ) : error ? (
-              <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-rose-200">Analysis Error</p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed">{error}</p>
-                </div>
-              </div>
-            ) : response ? (
-              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                <div className="p-2 mb-2 rounded bg-slate-950/80 border border-slate-800/80 text-[10px] text-emerald-300/90 font-mono flex items-center justify-between shrink-0">
-                  <span>Engine: inclusionai/ling-3.0-flash-fin:free</span>
-                  <span className="text-slate-400">Structured Financial Report</span>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <MarkdownViewer
-                    content={response}
-                    className="h-full"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-center p-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center mb-2">
-                  <BarChart3 className="w-5 h-5 text-slate-400" />
-                </div>
-                <h4 className="text-xs font-semibold text-slate-300">No Analysis Executed Yet</h4>
-                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
-                  Click <span className="text-emerald-400 font-medium">"Analyze NVIDIA growth drivers"</span> above to trigger model reasoning and data generation.
-                </p>
-              </div>
-            )}
+          <p className="text-xs text-slate-400">
+            The same dataset shown at right is supplied to the model. No live
+            web search in this demo.
+          </p>
+          <p className="text-xs text-cyan-200">
+            Application calculation: Data Center revenue rose{" "}
+            {(
+              ((NVIDIA_DATA[2].hyperscale + NVIDIA_DATA[2].acie) /
+                (NVIDIA_DATA[0].hyperscale + NVIDIA_DATA[0].acie)) *
+                100 -
+              100
+            ).toFixed(2)}
+            % YoY — more than doubled. Missing margin and concentration
+            information refers to this snapshot, not the entire filing.
+          </p>
+          {busy && <p role="status">Waiting for Ling analysis…</p>}
+          {error && (
+            <p role="alert" className="text-rose-300">
+              {error}
+            </p>
+          )}
+          {output && (
+            <>
+              <p className="text-xs text-amber-300">
+                Numeric fields checked · interpretation still requires review
+              </p>
+              <MarkdownViewer content={output} />
+            </>
+          )}
+        </section>
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-5 space-y-4">
+          <h3 className="font-semibold">Revenue by market platform ($M)</h3>
+          <p className="text-xs text-slate-400">
+            ACIE = AI Clouds, Industrial, and Enterprise. Data Center =
+            Hyperscale + ACIE; total revenue also includes Edge.
+          </p>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={NVIDIA_DATA}>
+                <CartesianGrid stroke="#334155" vertical={false} />
+                <XAxis dataKey="period" fontSize={10} />
+                <YAxis fontSize={10} />
+                <Tooltip contentStyle={{ background: "#0f172a" }} />
+                <Legend />
+                <Bar dataKey="hyperscale" name="Hyperscale" fill="#10b981" />
+                <Bar dataKey="acie" name="ACIE" fill="#06b6d4" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Right Pane: Responsive Charting Area using Recharts */}
-        <div className="lg:col-span-6 flex flex-col space-y-4 min-h-0 overflow-hidden">
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* Chart Title & Stat Badges */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-              <div>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-100">
-                    {activeAnalysis === "nvidia"
-                      ? "NVIDIA Revenue Shift ($ Billions)"
-                      : "Micron Technology RPO Breakdown ($ Billions)"}
-                  </h3>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {activeAnalysis === "nvidia"
-                    ? "Hyperscale (Cloud Service Providers) vs ACIE (AI Clouds, Industrial, and Enterprise)"
-                    : "Multi-Year Contract Backlog Commitments vs Recognized Product Revenue across Fiscal Years"}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs">
-                <div className="px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700/80 text-[11px] font-mono">
-                  <span className="text-slate-400">
-                    {activeAnalysis === "nvidia" ? "FY27 Q2 Data Center: " : "Contract Pool: "}
-                  </span>
-                  <span className="text-emerald-400 font-bold">
-                    {activeAnalysis === "nvidia" ? "$89.0B" : "$119.5B"}
-                  </span>
-                </div>
-                <div className="px-2.5 py-1 rounded bg-slate-800/80 border border-slate-700/80 text-[11px] font-mono">
-                  <span className="text-slate-400">
-                    {activeAnalysis === "nvidia" ? "ACIE Growth: " : "RPO Scale: "}
-                  </span>
-                  <span className="text-cyan-400 font-bold">
-                    {activeAnalysis === "nvidia" ? "+138% YoY" : "~$100B Commitments"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recharts Container */}
-            <div className="flex-1 w-full min-h-[360px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 20, left: -10, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis
-                    dataKey="period"
-                    stroke="#64748b"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: "#334155" }}
-                  />
-                  <YAxis
-                    stroke="#64748b"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: "#334155" }}
-                    unit="B"
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      borderColor: "#334155",
-                      borderRadius: "0.5rem",
-                      fontSize: "12px",
-                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-                    }}
-                    itemStyle={{ padding: "2px 0" }}
-                    formatter={(value: number, name: string) => [
-                      `$${value.toFixed(1)}B`,
-                      activeAnalysis === "nvidia"
-                        ? name === "hyperscale"
-                          ? "Hyperscale Cloud Providers"
-                          : "ACIE (Enterprise, Sovereign & Neoclouds)"
-                        : name === "hyperscale"
-                        ? "Recognized Revenue"
-                        : "Multi-Year RPO Backlog Commitments",
-                    ]}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    wrapperStyle={{ fontSize: "11px", paddingTop: "0px" }}
-                    formatter={(value) => (
-                      <span className="text-slate-300 font-medium">
-                        {activeAnalysis === "nvidia"
-                          ? value === "hyperscale"
-                            ? "Hyperscale Cloud (AWS/Azure/GCP/OCI)"
-                            : "ACIE (AI Clouds, Industrial, and Enterprise)"
-                          : value === "hyperscale"
-                          ? "Recognized Revenue (Current Period)"
-                          : "Multi-Year RPO Commitments (Future Delivery)"}
-                      </span>
-                    )}
-                  />
-                  <Bar
-                    dataKey="hyperscale"
-                    fill="#10b981"
-                    radius={[4, 4, 0, 0]}
-                    name="hyperscale"
-                  />
-                  <Bar
-                    dataKey="acie"
-                    fill="#06b6d4"
-                    radius={[4, 4, 0, 0]}
-                    name="acie"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Key Insights Summary Footer */}
-            <div className="grid grid-cols-3 gap-3 pt-3 mt-2 border-t border-slate-800/80 text-[11px]">
-              <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                <span className="text-slate-500 block">Market Concentration Shift</span>
-                <span className="font-bold text-slate-200 mt-0.5 block">Parity Reached (~50/50)</span>
-                <span className="text-[10px] text-emerald-400">Hyperscale $37.9B vs ACIE $37.4B (Q1 FY27)</span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                <span className="text-slate-500 block">ACIE Segment Growth</span>
-                <span className="font-bold text-slate-200 mt-0.5 block">Accelerating to $40.3B</span>
-                <span className="text-[10px] text-cyan-400">+138% YoY Enterprise & Neocloud Surge</span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                <span className="text-slate-500 block">Blended Gross Margin</span>
-                <span className="font-bold text-slate-200 mt-0.5 block">74.5% - 76.0%</span>
-                <span className="text-[10px] text-purple-400">Sustained Architecture Premium</span>
-              </div>
-            </div>
-          </div>
-        </div>
+          <table className="w-full text-xs text-right">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Data Center</th>
+                <th>Edge</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {NVIDIA_DATA.map((r) => (
+                <tr key={r.period}>
+                  <td className="py-2">{r.period}</td>
+                  <td>{(r.hyperscale + r.acie).toLocaleString()}</td>
+                  <td>{r.edge.toLocaleString()}</td>
+                  <td>{r.total.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-xs text-amber-200">
+            Consistent Q2 FY27 recast basis. The original Q1 split of roughly
+            $37.9B / $37.4B was subsequently recast to $43.050B / $32.196B.
+          </p>
+          <a
+            className="block text-xs text-cyan-400 underline"
+            target="_blank"
+            rel="noreferrer"
+            href={NVIDIA_SOURCE}
+          >
+            Source: NVIDIA Q2 FY2027 10-Q · MD&A market-platform table
+          </a>
+          <p className="text-xs text-slate-500">
+            Manually transcribed snapshot · reviewed September 10, 2026 · chart
+            does not change when the model replies.
+          </p>
+        </section>
       </div>
     </div>
   );
-};
+}

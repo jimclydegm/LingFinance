@@ -1,579 +1,244 @@
 "use client";
-
-import React, { useState } from "react";
-import {
-  FileSpreadsheet,
-  Play,
-  Download,
-  Layers,
-  Sparkles,
-  RefreshCw,
-  CheckCircle2,
-  Table as TableIcon,
-  HelpCircle,
-} from "lucide-react";
+import { useState } from "react";
 import { queryLingFinance } from "@/lib/openrouter";
+import {
+  ALPHABET_ANNUAL_SOURCE,
+  ALPHABET_Q2_SOURCE,
+  calculateWorkbook,
+  sum,
+  money,
+} from "@/lib/finance-data";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
-import { cn } from "@/lib/utils";
-
-type SheetTab = "Summary" | "Q2 Actuals" | "Projections";
-
-interface CellData {
-  value: string;
-  isFormula?: boolean;
-  formulaText?: string;
-  isHeader?: boolean;
-  isUpdated?: boolean;
-  align?: "left" | "right" | "center";
-}
-
 export interface Demo2ExcelModelingProps {
-  onShowToast: (title: string, message: string, type?: "success" | "error" | "info") => void;
+  onShowToast: (
+    title: string,
+    message: string,
+    type?: "success" | "error" | "info",
+  ) => void;
 }
-
-export const Demo2ExcelModeling: React.FC<Demo2ExcelModelingProps> = ({ onShowToast }) => {
-  const [activeSheet, setActiveSheet] = useState<SheetTab>("Summary");
-  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number }>({ row: 3, col: 3 });
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const [isLoadingWorkbook, setIsLoadingWorkbook] = useState<boolean>(false);
-  const [workbookLoaded, setWorkbookLoaded] = useState<boolean>(true);
-  const [updatedCells, setUpdatedCells] = useState<Record<string, boolean>>({});
-  const [totalFormulasUpdated, setTotalFormulasUpdated] = useState<number>(0);
-  const [lastModelResponse, setLastModelResponse] = useState<string>("");
-
-  // Sheet 1: Summary Sheet Data
-  // Sheet 1: Summary Sheet Data
-  const summarySheet: CellData[][] = [
-    [
-      { value: "ALPHABET INC. (GOOGL)", isHeader: true, align: "left" },
-      { value: "CONSOLIDATED FINANCIAL MODEL", isHeader: true, align: "left" },
-      { value: "CURRENCY: USD ($M)", isHeader: true, align: "right" },
-      { value: "MODEL VERSION: v8.4", isHeader: true, align: "right" },
-      { value: "STATUS: LIVE", isHeader: true, align: "center" },
-      { value: "UPDATED: 2026-Q2", isHeader: true, align: "center" },
-    ],
-    [
-      { value: "Line Item", isHeader: true, align: "left" },
-      { value: "FY2024 Actual", isHeader: true, align: "right" },
-      { value: "FY2025 Actual", isHeader: true, align: "right" },
-      { value: "2026 Q1 Actual", isHeader: true, align: "right" },
-      { value: "2026 Q2 Actual (Mapped)", isHeader: true, align: "right" },
-      { value: "FY2026 Consensus", isHeader: true, align: "right" },
-    ],
-    [
-      { value: "Google Search & Other", align: "left" },
-      { value: "$198,111", align: "right" },
-      { value: "$228,450", align: "right" },
-      { value: "$61,500", align: "right" },
-      { value: "$66,200", isFormula: true, formulaText: "='Q2 Actuals'!C3", align: "right" },
-      { value: "$272,500", isFormula: true, formulaText: "=SUM(D3:G3)", align: "right" },
-    ],
-    [
-      { value: "YouTube Advertising", align: "left" },
-      { value: "$36,147", align: "right" },
-      { value: "$41,820", align: "right" },
-      { value: "$10,850", align: "right" },
-      { value: "$11,900", isFormula: true, formulaText: "='Q2 Actuals'!C4", align: "right" },
-      { value: "$49,600", isFormula: true, formulaText: "=SUM(D4:G4)", align: "right" },
-    ],
-    [
-      { value: "Google Network", align: "left" },
-      { value: "$30,358", align: "right" },
-      { value: "$31,480", align: "right" },
-      { value: "$7,520", align: "right" },
-      { value: "$7,840", isFormula: true, formulaText: "='Q2 Actuals'!C5", align: "right" },
-      { value: "$31,800", isFormula: true, formulaText: "=SUM(D5:G5)", align: "right" },
-    ],
-    [
-      { value: "Google Subscriptions, Platforms & Devices", align: "left" },
-      { value: "$40,317", align: "right" },
-      { value: "$45,850", align: "right" },
-      { value: "$12,400", align: "right" },
-      { value: "$13,250", isFormula: true, formulaText: "='Q2 Actuals'!C6", align: "right" },
-      { value: "$54,100", isFormula: true, formulaText: "=SUM(D6:G6)", align: "right" },
-    ],
-    [
-      { value: "Google Cloud Platform & Workspace", align: "left" },
-      { value: "$43,248", align: "right" },
-      { value: "$53,420", align: "right" },
-      { value: "$14,650", align: "right" },
-      { value: "$17,250", isFormula: true, formulaText: "='Q2 Actuals'!C7", align: "right" },
-      { value: "$71,200", isFormula: true, formulaText: "=SUM(D7:G7)", align: "right" },
-    ],
-    [
-      { value: "Other Bets", align: "left" },
-      { value: "$1,623", align: "right" },
-      { value: "$1,814", align: "right" },
-      { value: "$490", align: "right" },
-      { value: "$540", isFormula: true, formulaText: "='Q2 Actuals'!C8", align: "right" },
-      { value: "$2,250", isFormula: true, formulaText: "=SUM(D8:G8)", align: "right" },
-    ],
-    [
-      { value: "Total Revenues", isHeader: true, align: "left" },
-      { value: "$350,018", align: "right" },
-      { value: "$402,834", align: "right" },
-      { value: "$107,410", align: "right" },
-      { value: "$116,980", isFormula: true, formulaText: "=SUM(E3:E8)", align: "right" },
-      { value: "$481,450", isFormula: true, formulaText: "=SUM(F3:F8)", align: "right" },
-    ],
-    [
-      { value: "Traffic Acquisition Costs (TAC)", align: "left" },
-      { value: "($54,850)", align: "right" },
-      { value: "($61,200)", align: "right" },
-      { value: "($15,950)", align: "right" },
-      { value: "($17,300)", isFormula: true, formulaText: "='Q2 Actuals'!C10", align: "right" },
-      { value: "($71,500)", isFormula: true, formulaText: "=SUM(D10:G10)", align: "right" },
-    ],
-    [
-      { value: "Operating Income (EBIT)", isHeader: true, align: "left" },
-      { value: "$118,300", align: "right" },
-      { value: "$129,050", align: "right" },
-      { value: "$36,200", align: "right" },
-      { value: "$40,850", isFormula: true, formulaText: "='Q2 Actuals'!C11", align: "right" },
-      { value: "$165,200", isFormula: true, formulaText: "=SUM(D11:G11)", align: "right" },
-    ],
-    [
-      { value: "Operating Margin (%)", align: "left" },
-      { value: "33.8%", align: "right" },
-      { value: "32.0%", align: "right" },
-      { value: "33.7%", align: "right" },
-      { value: "34.9%", isFormula: true, formulaText: "=E11/E9", align: "right" },
-      { value: "34.3%", isFormula: true, formulaText: "=F11/F9", align: "right" },
-    ],
-    [
-      { value: "Capital Expenditures (AI Compute & TPU)", align: "left" },
-      { value: "($52,500)", align: "right" },
-      { value: "($75,000)", align: "right" },
-      { value: "($21,500)", align: "right" },
-      { value: "($24,200)", isFormula: true, formulaText: "='Q2 Actuals'!C13", align: "right" },
-      { value: "($96,000)", isFormula: true, formulaText: "=SUM(D13:G13)", align: "right" },
-    ],
-    [
-      { value: "Diluted EPS (USD)", isHeader: true, align: "left" },
-      { value: "$8.04", align: "right" },
-      { value: "$9.12", align: "right" },
-      { value: "$2.55", align: "right" },
-      { value: "$2.88", isFormula: true, formulaText: "='Q2 Actuals'!C15", align: "right" },
-      { value: "$11.45", isFormula: true, formulaText: "=SUM(D14:G14)", align: "right" },
-    ],
-  ];
-
-  // Sheet 2: Q2 Actuals Data
-  const q2ActualsSheet: CellData[][] = [
-    [
-      { value: "ALPHABET 2026 Q2 10-Q EXTRACTED ACTUALS", isHeader: true, align: "left" },
-      { value: "EDGAR XBRL PARSED", isHeader: true, align: "center" },
-      { value: "Q2 2026", isHeader: true, align: "right" },
-      { value: "YoY Growth", isHeader: true, align: "right" },
-      { value: "Variance vs St Consensus", isHeader: true, align: "right" },
-      { value: "Formula Tag", isHeader: true, align: "center" },
-    ],
-    [
-      { value: "Google Search & Other", align: "left" },
-      { value: "XBRL Tag: SearchRev", align: "center" },
-      { value: "$66,200", align: "right" },
-      { value: "+14.8%", align: "right" },
-      { value: "+$1,250M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "YouTube Advertising", align: "left" },
-      { value: "XBRL Tag: YTAdsRev", align: "center" },
-      { value: "$11,900", align: "right" },
-      { value: "+13.1%", align: "right" },
-      { value: "+$320M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Google Network", align: "left" },
-      { value: "XBRL Tag: NetworkRev", align: "center" },
-      { value: "$7,840", align: "right" },
-      { value: "+1.2%", align: "right" },
-      { value: "+$80M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Google Subscriptions, Platforms & Devices", align: "left" },
-      { value: "XBRL Tag: SubscriptionsRev", align: "center" },
-      { value: "$13,250", align: "right" },
-      { value: "+15.4%", align: "right" },
-      { value: "+$350M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Google Cloud", align: "left" },
-      { value: "XBRL Tag: CloudRev", align: "center" },
-      { value: "$17,250", align: "right" },
-      { value: "+31.8%", align: "right" },
-      { value: "+$890M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Other Bets", align: "left" },
-      { value: "XBRL Tag: OtherBetsRev", align: "center" },
-      { value: "$540", align: "right" },
-      { value: "+21.2%", align: "right" },
-      { value: "+$40M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Consolidated Revenue", isHeader: true, align: "left" },
-      { value: "GAAP Total", align: "center" },
-      { value: "$116,980", isFormula: true, formulaText: "=SUM(C2:C7)", align: "right" },
-      { value: "+17.6%", align: "right" },
-      { value: "+$2,930M", align: "right" },
-      { value: "CALC_GAAP", align: "center" },
-    ],
-    [
-      { value: "Traffic Acquisition Costs", align: "left" },
-      { value: "GAAP TAC", align: "center" },
-      { value: "($17,300)", align: "right" },
-      { value: "+9.2%", align: "right" },
-      { value: "($250M)", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Operating Income", isHeader: true, align: "left" },
-      { value: "GAAP EBIT", align: "center" },
-      { value: "$40,850", align: "right" },
-      { value: "+28.4%", align: "right" },
-      { value: "+$1,420M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-    [
-      { value: "Capital Expenditures (Cash Flow)", align: "left" },
-      { value: "AI Infrastructure", align: "center" },
-      { value: "($24,200)", align: "right" },
-      { value: "+45.1%", align: "right" },
-      { value: "+$2,100M", align: "right" },
-      { value: "HARD_ACTUAL", align: "center" },
-    ],
-  ];
-
-  // Sheet 3: Projections Data
-  const projectionsSheet: CellData[][] = [
-    [
-      { value: "ALPHABET FORWARD PROJECTIONS & COLD ESTIMATES", isHeader: true, align: "left" },
-      { value: "Q3 2026E", isHeader: true, align: "right" },
-      { value: "Q4 2026E", isHeader: true, align: "right" },
-      { value: "FY 2027E", isHeader: true, align: "right" },
-      { value: "Driver Assumption", isHeader: true, align: "center" },
-    ],
-    [
-      { value: "Google Search & Other", align: "left" },
-      { value: "$69,500", isFormula: true, formulaText: "='Q2 Actuals'!C2*1.050", align: "right" },
-      { value: "$75,300", isFormula: true, formulaText: "=C2*1.083", align: "right" },
-      { value: "$310,000", isFormula: true, formulaText: "=SUM(B2:C2)*2.15", align: "right" },
-      { value: "+5.0% QoQ AI Overviews", align: "center" },
-    ],
-    [
-      { value: "YouTube Advertising", align: "left" },
-      { value: "$12,800", isFormula: true, formulaText: "='Q2 Actuals'!C3*1.075", align: "right" },
-      { value: "$14,500", isFormula: true, formulaText: "=C3*1.133", align: "right" },
-      { value: "$58,500", isFormula: true, formulaText: "=SUM(B3:C3)*2.14", align: "right" },
-      { value: "Holiday Season Surge", align: "center" },
-    ],
-    [
-      { value: "Google Network", align: "left" },
-      { value: "$8,050", isFormula: true, formulaText: "='Q2 Actuals'!C4*1.026", align: "right" },
-      { value: "$8,400", isFormula: true, formulaText: "=C4*1.043", align: "right" },
-      { value: "$34,200", isFormula: true, formulaText: "=SUM(B4:C4)*2.08", align: "right" },
-      { value: "Programmatic Stabilization", align: "center" },
-    ],
-    [
-      { value: "Google Subscriptions, Platforms & Devices", align: "left" },
-      { value: "$13,900", isFormula: true, formulaText: "='Q2 Actuals'!C5*1.049", align: "right" },
-      { value: "$15,200", isFormula: true, formulaText: "=C5*1.094", align: "right" },
-      { value: "$62,400", isFormula: true, formulaText: "=SUM(B5:C5)*2.14", align: "right" },
-      { value: "Pixel & YouTube Music/Premium", align: "center" },
-    ],
-    [
-      { value: "Google Cloud", align: "left" },
-      { value: "$19,100", isFormula: true, formulaText: "='Q2 Actuals'!C6*1.107", align: "right" },
-      { value: "$21,600", isFormula: true, formulaText: "=C6*1.131", align: "right" },
-      { value: "$91,500", isFormula: true, formulaText: "=SUM(B6:C6)*2.25", align: "right" },
-      { value: "Enterprise Vertex AI backlog", align: "center" },
-    ],
-    [
-      { value: "Other Bets", align: "left" },
-      { value: "$580", isFormula: true, formulaText: "='Q2 Actuals'!C7*1.074", align: "right" },
-      { value: "$640", isFormula: true, formulaText: "=C7*1.103", align: "right" },
-      { value: "$2,650", isFormula: true, formulaText: "=SUM(B7:C7)*2.17", align: "right" },
-      { value: "Waymo commercial expansion", align: "center" },
-    ],
-    [
-      { value: "Consolidated Revenue", isHeader: true, align: "left" },
-      { value: "$123,930", isFormula: true, formulaText: "=SUM(B2:B7)", align: "right" },
-      { value: "$135,640", isFormula: true, formulaText: "=SUM(C2:C7)", align: "right" },
-      { value: "$559,250", isFormula: true, formulaText: "=SUM(D2:D7)", align: "right" },
-      { value: "Cross-Sheet Refresh", align: "center" },
-    ],
-  ];
-
-  const getActiveGrid = () => {
-    switch (activeSheet) {
-      case "Q2 Actuals":
-        return q2ActualsSheet;
-      case "Projections":
-        return projectionsSheet;
-      case "Summary":
-      default:
-        return summarySheet;
-    }
-  };
-
-  const currentGrid = getActiveGrid();
-  const currentSelectedCell = currentGrid[selectedCell.row]?.[selectedCell.col];
-  const colHeaders = ["A", "B", "C", "D", "E", "F", "G", "H"];
-
-  const handleLoadWorkbook = () => {
-    setIsLoadingWorkbook(true);
-    setTimeout(() => {
-      setWorkbookLoaded(true);
-      setIsLoadingWorkbook(false);
-      onShowToast(
-        "Google 2026 Q2 Workbook Loaded",
-        "Successfully initialized 3-statement financial workbook with 5,280 inter-sheet cell bindings, historicals, and baseline projections.",
-        "info"
-      );
-    }, 600);
-  };
-
-  const handleExecuteUpdate = async () => {
-    setIsUpdating(true);
-    setUpdatedCells({});
-
-    const prompt =
-      "Summarize the comprehensive steps to map Alphabet 2026 Q2 10-Q actuals into the consolidated financial model across all 6 reporting segments (Search, YouTube, Network, Subscriptions/Devices, Cloud, and Other Bets), reconcile audited historical actuals ($350.0B FY24, $402.8B FY25) to forward estimates, recalculate cross-sheet dependencies, and refresh 5,000+ formula links.";
-
+export function Demo2ExcelModeling({ onShowToast }: Demo2ExcelModelingProps) {
+  const [sheet, setSheet] = useState("Summary"),
+    [mapped, setMapped] = useState(false),
+    [growth, setGrowth] = useState(10),
+    [busy, setBusy] = useState(false),
+    [output, setOutput] = useState("");
+  const rows = calculateWorkbook(growth, mapped);
+  const headers =
+    sheet === "Summary"
+      ? [
+          "Revenue category",
+          "FY2024 actual",
+          "FY2025 actual",
+          `Q2 2026 ${mapped ? "mapped actual" : "illustrative estimate"}`,
+          "Actual − estimate",
+        ]
+      : sheet === "Q2 Actuals"
+        ? ["Revenue category", "Q2 2025 actual", "Q2 2026 actual"]
+        : ["Revenue category", "Q3 2026 scenario", "Formula"];
+  async function run() {
+    setBusy(true);
+    setOutput("");
+    const updated = calculateWorkbook(growth, true);
+    // These application calculations are independent of the model's explanation.
+    setMapped(true);
     try {
-      const modelOutput = await queryLingFinance(prompt, {
-        systemPrompt:
-          "You are an expert Wall Street Financial Modeling Engine powered by Ling 3.0 Flash Fin. Respond with clear, structured steps on mapping audited actuals to estimates across Alphabet's 6 reporting segments, verifying consolidated revenues exceeding $400B run-rate, and preserving cross-sheet workbook integrity.",
-      });
-
-      setLastModelResponse(modelOutput);
-
-      // Animate highlight across all formula cells in the grid
-      const newUpdated: Record<string, boolean> = {};
-      currentGrid.forEach((row, rIdx) => {
-        row.forEach((cell, cIdx) => {
-          if (cell.isFormula || cIdx === 3 || cell.isHeader) {
-            newUpdated[`${rIdx}-${cIdx}`] = true;
-          }
-        });
-      });
-      setUpdatedCells(newUpdated);
-      setTotalFormulasUpdated(5280);
-
-      // Display response in floating toast notification as explicitly requested
-      onShowToast(
-        "Ling 3.0 Flash Fin: 5,280 Formulas Refreshed",
-        modelOutput.slice(0, 450) + (modelOutput.length > 450 ? "..." : ""),
-        "success"
+      const result = await queryLingFinance(
+        `Review this browser revenue workbook. Explain mapping Q2 Actuals into Summary, actual-minus-estimate variances, and the Q3 scenario. Data in USD millions: ${JSON.stringify(updated)}. Illustrative growth assumption: ${growth}%, not consensus. Estimates=round(Q2 2025*(1+growth/100)); Q3 scenario=round(mapped Q2 2026*(1+growth/100)). Totals=sum all seven rows, including hedging. Historical source ${ALPHABET_ANNUAL_SOURCE}; quarterly source ${ALPHABET_Q2_SOURCE}. Report any discrepancies. This is a small in-browser workbook, not Excel automation; app maps 7 values and recalculates 2 totals plus 7 projections. You have no live retrieval tools and do not edit cells. Alphabet reports segment results as Google Services, Google Cloud and Other Bets (a combination of operating segments). Search/YouTube/Network/subscriptions are components of Google Services. The seven non-overlapping rows correctly sum to consolidated revenue including hedging; adding the Google Services subtotal again would double-count. Application-calculated negative variance rows: ${JSON.stringify(updated.filter((r) => r.variance < 0).map((r) => ({ category: r.label, variance: r.variance })))}. The illustrative Q3 growth is quarter-over-quarter; observed Q2 annual growth is year-over-year. These are different time bases.`,
+        {
+          systemPrompt:
+            "Review only the supplied workbook evidence. The app maps and updates values; you provide commentary and do not edit cells. Distinguish application calculations from model judgments. Do not invent a segment count or warn that summing non-overlapping rows double-counts. Identify all negative variance categories from the supplied list. A variance against an illustrative assumption is not an accounting discrepancy or a consensus surprise. Do not infer structural decline from one YoY observation. Do not label the Q3 scenario conservative or aggressive by comparing its QoQ growth to YoY growth. Treat the common growth rate, especially for hedging, as a mechanical sensitivity exercise, not a forecast. Limit the review to mapping, observed variances and evidence limitations.",
+        },
       );
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to execute workbook update.";
-      onShowToast("Model Execution Error", msg, "error");
+      setOutput(result);
+      onShowToast(
+        "Workbook mapped; model review received",
+        "7 actuals mapped and 9 dependent values recalculated by the app.",
+        "success",
+      );
+    } catch (e) {
+      onShowToast(
+        "Model review unavailable",
+        `${e instanceof Error ? e.message : "Request failed"}. Workbook mapping completed independently.`,
+        "error",
+      );
     } finally {
-      setIsUpdating(false);
+      setBusy(false);
     }
-  };
-
+  }
   return (
-    <div className="h-full flex flex-col p-6 space-y-4 overflow-hidden">
-      {/* Top Header & Controls Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-              Demo 2
-            </span>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              Financial Modeling in Excel
-            </h2>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Automated actuals mapping, formula switching, and cross-sheet dependency recalculation
-          </p>
-        </div>
-
-        {/* Control Panel: Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            id="btn-load-workbook"
-            onClick={handleLoadWorkbook}
-            disabled={isLoadingWorkbook || isUpdating}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors disabled:opacity-50"
-          >
-            {isLoadingWorkbook ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-            ) : (
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
-            )}
-            <span>Load Google 2026 Q2 Workbook</span>
-          </button>
-
-          <button
-            id="btn-execute-update"
-            onClick={handleExecuteUpdate}
-            disabled={isUpdating}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-slate-950 font-bold text-xs tracking-wide shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
-          >
-            {isUpdating ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                <span>Executing 5,000+ Updates...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 text-slate-950 fill-current" />
-                <span>Execute Update</span>
-              </>
-            )}
-          </button>
-        </div>
+    <div className="h-full overflow-y-auto p-6 space-y-5">
+      <section
+        className="rounded-lg border border-cyan-900 bg-slate-900 p-3 text-xs text-slate-300"
+        aria-label="Workbook interpretation checks"
+      >
+        <p>
+          Accounting structure: Google Services, Google Cloud and Other Bets.
+          The seven rows include non-overlapping revenue categories and hedging;
+          summing them does not double-count.
+        </p>
+        <p className="mt-2">
+          Negative actual-minus-estimate variances at the selected assumption:{" "}
+          {rows
+            .filter((r) => r.variance < 0)
+            .map((r) => `${r.label}: ${money(r.variance)}M`)
+            .join("; ") || "None"}
+          .
+        </p>
+        <p className="mt-2">
+          Q3 is a mechanical QoQ sensitivity scenario. A comparison with YoY
+          growth cannot establish whether it is conservative. One annual decline
+          does not establish a structural trend.
+        </p>
+      </section>
+      <div>
+        <p className="text-cyan-400 text-xs">DEMO 2 · FINANCIAL WORKBOOK</p>
+        <h2 className="text-xl font-bold mt-2">
+          Alphabet actuals → scenario model
+        </h2>
+        <p className="text-sm text-slate-400 mt-2">
+          Source snapshots and working calculations in a browser grid. No Excel
+          file or live spreadsheet connection.
+        </p>
       </div>
-
-      {/* Spreadsheet Formula Bar & Coordinate Inspector */}
-      <div className="flex items-center gap-3 p-2 px-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
-        <div className="px-2 py-1 bg-slate-950 rounded border border-slate-800 text-cyan-400 font-bold min-w-[50px] text-center">
-          {colHeaders[selectedCell.col] || "A"}
-          {selectedCell.row + 1}
-        </div>
-        <span className="text-slate-600 font-bold">fx</span>
-        <div className="flex-1 bg-slate-950/70 border border-slate-800/80 rounded px-3 py-1 text-slate-200 truncate">
-          {currentSelectedCell?.formulaText || currentSelectedCell?.value || ""}
-        </div>
-        {totalFormulasUpdated > 0 && (
-          <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-sans">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{totalFormulasUpdated.toLocaleString()} formulas refreshed</span>
-          </div>
-        )}
+      <div className="flex flex-wrap gap-4 items-center">
+        <button
+          id="btn-load-workbook"
+          className="bg-slate-700 rounded px-4 py-2"
+          disabled={busy}
+          onClick={() => {
+            setMapped(false);
+            setOutput("");
+            setGrowth(10);
+          }}
+        >
+          Load / reset Google 2026 Q2 Workbook
+        </button>
+        <button
+          id="btn-execute-update"
+          disabled={busy}
+          className="bg-cyan-700 rounded px-4 py-2 disabled:opacity-50"
+          onClick={() => void run()}
+        >
+          {busy ? "Reviewing with Ling…" : "Execute Update & Review"}
+        </button>
+        <label className="text-sm">
+          Illustrative growth %{" "}
+          <input
+            aria-label="Illustrative growth percent"
+            type="number"
+            min={-100}
+            max={100}
+            value={growth}
+            disabled={busy}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n))
+                setGrowth(Math.max(-100, Math.min(100, n)));
+            }}
+            className="w-20 bg-slate-800 p-2 rounded"
+          />
+        </label>
       </div>
-
-      {/* Financial Workbook Data Grid */}
-      <div className="flex-1 bg-slate-950/90 border border-slate-800 rounded-xl overflow-hidden flex flex-col shadow-2xl">
-        <div className="flex-1 overflow-auto">
-          <table className="w-full border-collapse text-xs font-mono select-none">
-            <thead>
-              <tr className="bg-slate-900 border-b border-slate-800 sticky top-0 z-10">
-                <th className="w-12 py-2 px-2 border-r border-slate-800 text-slate-500 font-semibold text-center bg-slate-900">
-                  #
+      <p className="text-xs text-amber-200">
+        {mapped
+          ? "7 actuals mapped; 9 dependent values recalculated. Green cells show mapped values. Calculations are performed by the app."
+          : "Before update: Q2 estimates = Q2 2025 actuals × your illustrative growth assumption."}
+      </p>
+      <div className="border border-slate-700 rounded-xl overflow-x-auto">
+        <table className="w-full text-sm text-right">
+          <thead className="bg-slate-800">
+            <tr>
+              {headers.map((h) => (
+                <th key={h} className="p-3">
+                  {h}
                 </th>
-                {colHeaders.slice(0, 6).map((col, idx) => (
-                  <th
-                    key={col}
-                    className="py-2 px-4 border-r border-slate-800 text-slate-400 font-semibold text-center min-w-[140px]"
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currentGrid.map((row, rIdx) => (
-                <tr
-                  key={rIdx}
-                  className={cn(
-                    "border-b border-slate-800/60 transition-colors",
-                    rIdx % 2 === 0 ? "bg-slate-950/40" : "bg-slate-900/20"
-                  )}
-                >
-                  {/* Row Number Column */}
-                  <td className="w-12 py-2 px-2 border-r border-slate-800 text-slate-500 text-center font-bold bg-slate-900/60">
-                    {rIdx + 1}
-                  </td>
-
-                  {/* Row Cells */}
-                  {row.map((cell, cIdx) => {
-                    const isSelected =
-                      selectedCell.row === rIdx && selectedCell.col === cIdx;
-                    const isCellUpdated = updatedCells[`${rIdx}-${cIdx}`];
-
-                    return (
-                      <td
-                        key={cIdx}
-                        onClick={() => setSelectedCell({ row: rIdx, col: cIdx })}
-                        className={cn(
-                          "py-2 px-3 border-r border-slate-800/50 cursor-pointer transition-all duration-300 relative text-xs",
-                          cell.isHeader && "font-bold text-slate-100 bg-slate-900/40",
-                          cell.align === "right" && "text-right",
-                          cell.align === "center" && "text-center",
-                          cell.align === "left" && "text-left",
-                          isSelected &&
-                            "ring-2 ring-cyan-500 bg-cyan-950/30 z-10 text-cyan-200",
-                          isCellUpdated &&
-                            "animate-flash-green bg-emerald-500/20 text-emerald-300 font-semibold"
-                        )}
-                      >
-                        {cell.isFormula && (
-                          <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-cyan-500/60" />
-                        )}
-                        <span className="truncate block">{cell.value}</span>
-                      </td>
-                    );
-                  })}
-                </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Workbook Bottom Tabs for Sheet Navigation */}
-        <div className="h-11 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between">
-          <div className="flex items-center space-x-1">
-            <span className="text-[11px] font-sans text-slate-500 mr-2 flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5" /> Sheets:
-            </span>
-            {(["Summary", "Q2 Actuals", "Projections"] as SheetTab[]).map((tab) => {
-              const isActive = activeSheet === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveSheet(tab)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded-t border-t border-x transition-all relative top-[2px]",
-                    isActive
-                      ? "bg-slate-950 border-slate-700 text-cyan-400 font-semibold border-b-2 border-b-cyan-400 shadow-sm"
-                      : "bg-slate-900 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-                  )}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="text-[11px] text-slate-400 font-mono hidden sm:flex items-center gap-3">
-            <span>Workbook: GOOGL_2026Q2_Model.xlsx</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-emerald-400">Sync: Clean</span>
-          </div>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.label} className="border-t border-slate-800">
+                <td className="p-3 text-left">{r.label}</td>
+                {sheet === "Summary" ? (
+                  <>
+                    <td>{money(r.fy24)}</td>
+                    <td>{money(r.fy25)}</td>
+                    <td
+                      title={
+                        mapped
+                          ? `='Q2 Actuals'!C${i + 2}`
+                          : `=ROUND('Q2 Actuals'!B${i + 2}*(1+${growth}/100),0)`
+                      }
+                      className={
+                        mapped ? "bg-emerald-900/40 text-emerald-300" : ""
+                      }
+                    >
+                      {money(r.current)}
+                    </td>
+                    <td>{money(r.variance)}</td>
+                  </>
+                ) : sheet === "Q2 Actuals" ? (
+                  <>
+                    <td>{money(r.q225)}</td>
+                    <td>{money(r.q226)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td>{money(r.projection)}</td>
+                    <td className="pr-3 text-xs font-mono">
+                      =ROUND(Summary!D{i + 2}*(1+{growth}/100),0)
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            <tr className="border-t border-cyan-700 bg-slate-800 font-bold">
+              <td className="p-3 text-left">Total revenue ($M)</td>
+              {(sheet === "Summary"
+                ? (["fy24", "fy25", "current", "variance"] as const)
+                : sheet === "Q2 Actuals"
+                  ? (["q225", "q226"] as const)
+                  : (["projection"] as const)
+              ).map((k) => (
+                <td key={k}>{money(sum(rows.map((r) => r[k])))}</td>
+              ))}
+              {sheet === "Projections" && <td>=SUM(B2:B8)</td>}
+            </tr>
+          </tbody>
+        </table>
+        <div className="flex gap-1 p-2 bg-slate-950">
+          {["Summary", "Q2 Actuals", "Projections"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setSheet(t)}
+              className={`px-4 py-2 rounded ${sheet === t ? "bg-cyan-900 text-cyan-200" : "bg-slate-800"}`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
-
-      {/* Model Output Inspector Drawer (if triggered) */}
-      {lastModelResponse && (
-        <div className="p-3.5 rounded-xl bg-slate-900/95 border border-slate-800 text-xs text-slate-300 flex flex-col space-y-2 max-h-44 shrink-0 shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2 shrink-0">
-            <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Ling 3.0 Flash Fin Reasoning Summary</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              Vertical Scrollable Breakdown
-            </span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <MarkdownViewer
-              content={lastModelResponse}
-              maxHeight="max-h-32"
-            />
-          </div>
-        </div>
+      <p className="text-xs text-slate-400">
+        FY2024 $350,018M · FY2025 $402,836M · Q2 2026 $119,796M. Includes
+        hedging. Quarterly results are unaudited. Q3 is an illustrative
+        scenario, not company guidance or consensus.
+      </p>
+      <div className="flex gap-5 text-xs text-cyan-400 underline">
+        <a href={ALPHABET_ANNUAL_SOURCE} target="_blank" rel="noreferrer">
+          2025 10-K revenue table
+        </a>
+        <a href={ALPHABET_Q2_SOURCE} target="_blank" rel="noreferrer">
+          Q2 2026 earnings release
+        </a>
+      </div>
+      {output && (
+        <section className="p-5 rounded-xl border border-slate-800 bg-slate-900">
+          <h3 className="mb-3">
+            Ling workbook review · unverified model commentary
+          </h3>
+          <MarkdownViewer content={output} />
+        </section>
       )}
     </div>
   );
-};
+}

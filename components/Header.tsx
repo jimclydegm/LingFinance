@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({ apiKeyConfigured }) => {
               </span>
               <span className="text-emerald-400 flex items-center gap-1">
                 <Wifi className="w-3.5 h-3.5" />
-                <span>OpenRouter Connected</span>
+                <span>Server key configured</span>
               </span>
             </>
           ) : (
